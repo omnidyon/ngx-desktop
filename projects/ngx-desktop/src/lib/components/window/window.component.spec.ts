@@ -93,6 +93,16 @@ describe('WindowComponent', () => {
       expect(element.getAttribute('aria-label')).toBe('Test window');
     });
 
+    it('shows the full title as a tooltip, since a long title is cut off with an ellipsis', () => {
+      expect(query('.omni-window-title')?.getAttribute('title')).toBe('Test window');
+    });
+
+    it('has no tooltip for a custom header', async () => {
+      host.customHeader.set(true);
+      await stable();
+      expect(query('.omni-window-title')?.hasAttribute('title')).toBe(false);
+    });
+
     it('replaces the default title with projected header content', async () => {
       host.customHeader.set(true);
       await stable();

@@ -91,6 +91,10 @@ describe('DialogComponent', () => {
     expect(query('.body')).not.toBeNull();
   });
 
+  it('shows the full title as a tooltip', () => {
+    expect(query('.omni-window-title')?.getAttribute('title')).toBe('Confirm');
+  });
+
   it('closes with the close button', async () => {
     query('.omni-window-button[aria-label="Close"]')!.click();
     await stable();

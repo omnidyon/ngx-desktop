@@ -25,10 +25,9 @@
     user-select: none;
   }
 
+  // A block (not flex) line, so a title that does not fit ends in "…" (default and custom headers).
   .omni-window-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: block;
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -39,6 +38,8 @@
   .omni-window-icon {
     max-width: var(--omni-window-icon-size);
     max-height: var(--omni-window-icon-size);
+    margin-right: 8px;
+    vertical-align: middle;
   }
 
   .omni-window-buttons {
@@ -46,6 +47,8 @@
     align-items: center;
     flex-shrink: 0;
     gap: 8px;
+    // Keeps a cut-off title ("…") clear of the first button.
+    margin-left: 8px;
   }
 
   .omni-window-button {

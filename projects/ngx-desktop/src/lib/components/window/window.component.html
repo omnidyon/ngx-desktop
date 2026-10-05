@@ -8,7 +8,7 @@
     (dragEnd)="onDragEnd()"
     (dblclick)="onHeaderDoubleClick($event)"
   >
-    <span class="omni-window-title" [hidden]="collapsed()">
+    <span class="omni-window-title" [hidden]="collapsed()" [attr.title]="customHeader() ? null : header() || null">
       <ng-content select="[omniWindowHeader]" />
       @if (!customHeader()) {
         @if (icon(); as src) {

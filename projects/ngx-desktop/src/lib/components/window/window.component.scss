@@ -99,6 +99,8 @@
 }
 
 .omni-window-move-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
   width: var(--omni-window-button-size);
   height: var(--omni-window-button-size);
 }

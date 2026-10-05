@@ -14,7 +14,7 @@
     (keydown)="onKeydown($event)"
   >
     <div class="omni-window-header">
-      <span class="omni-window-title" [id]="titleId">
+      <span class="omni-window-title" [id]="titleId" [attr.title]="customHeader() ? null : header() || null">
         <ng-content select="[omniWindowHeader]" />
         @if (!customHeader()) {
           {{ header() }}
