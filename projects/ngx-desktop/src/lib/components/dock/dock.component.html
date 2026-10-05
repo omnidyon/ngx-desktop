@@ -2,6 +2,7 @@
   <button
     type="button"
     class="omni-dock-tab"
+    [attr.data-window-id]="window.id"
     [class.omni-dock-tab-minimized]="window.minimized()"
     [class.omni-dock-tab-focused]="desktop.focusedId() === window.id && !window.minimized()"
     [attr.aria-label]="window.header() || 'Window'"

@@ -10,7 +10,13 @@ describe('desktop config', () => {
     TestBed.configureTestingModule({ providers: [provideDesktopConfig({ zIndex: { window: 10 } })] });
     expect(TestBed.inject(DESKTOP_CONFIG)).toEqual({
       zIndex: { window: 10, dock: DEFAULT_DESKTOP_CONFIG.zIndex.dock, dialog: DEFAULT_DESKTOP_CONFIG.zIndex.dialog },
+      motion: 'system',
     });
+  });
+
+  it('sets the motion, keeping the default z-indexes', () => {
+    TestBed.configureTestingModule({ providers: [provideDesktopConfig({ motion: 'none' })] });
+    expect(TestBed.inject(DESKTOP_CONFIG)).toEqual({ zIndex: DEFAULT_DESKTOP_CONFIG.zIndex, motion: 'none' });
   });
 
   it('does not mutate the defaults', () => {

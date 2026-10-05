@@ -100,6 +100,11 @@ let standaloneTop = 0;
     '[attr.aria-hidden]': 'isAway() || null',
     '[class]': 'hostClasses()',
     '[style.transform]': 'transform()',
+    '[style.transform-origin]': 'transformOrigin()',
+    '[style.--omni-dock-dx]': 'dockFlight()?.dx',
+    '[style.--omni-dock-dy]': 'dockFlight()?.dy',
+    '[style.--omni-dock-sx]': 'dockFlight()?.sx',
+    '[style.--omni-dock-sy]': 'dockFlight()?.sy',
     '[style.width.px]': 'styleWidth()',
     '[style.height.px]': 'styleHeight()',
     '[style.z-index]': 'zIndex()',
@@ -194,6 +199,8 @@ export class WindowComponent implements DesktopWindow {
   private readonly snapZone = signal<SnapZone | null>(null);
   /** Size before the window was snapped into a zone; restored when it is dragged out again. */
   private readonly restoreSize = signal<Size | null>(null);
+  /** Where a minimized window flies to: its dock tab, as CSS offsets and scales from its own centre. */
+  protected readonly dockFlight = signal<{ dx: string; dy: string; sx: string; sy: string } | null>(null);
 
   private interactionStart: Rect | null = null;
   /** What the pointer is doing right now. */
@@ -237,6 +244,10 @@ export class WindowComponent implements DesktopWindow {
       'omni-window-interacting': this.interacting(),
       'omni-window-focused': this.desktop?.focusedId() === this.id,
       'omni-window-widget': this.widget(),
+      'omni-window-to-dock': this.minimized() && !!this.dockFlight(),
+      'omni-motion-system': this.config.motion === 'system',
+      'omni-motion-full': this.config.motion === 'full',
+      'omni-motion-none': this.config.motion === 'none',
       [`omni-theme-${theme}`]: !!theme,
     };
   });
@@ -244,6 +255,11 @@ export class WindowComponent implements DesktopWindow {
   protected readonly transform = computed(() => {
     const rect = this.rect();
     return rect && !this.maximized() ? `translate3d(${rect.x}px, ${rect.y}px, 0)` : null;
+  });
+  /** Scale (open, close, minimize) around the window's own centre: its box sits at the container's 0,0. */
+  protected readonly transformOrigin = computed(() => {
+    const rect = this.rect();
+    return rect && !this.maximized() ? `${rect.x + rect.width / 2}px ${rect.y + rect.height / 2}px` : null;
   });
   protected readonly styleWidth = computed(() => this.sizeStyle('width'));
   protected readonly styleHeight = computed(() => this.sizeStyle('height'));
@@ -270,6 +286,13 @@ export class WindowComponent implements DesktopWindow {
         this.boundsWaiter = null;
         waiter();
       });
+    });
+
+    // Minimizing inside a desktop: find the dock tab to fly into. Kept after restoring, so the window
+    // grows back out of the same tab.
+    effect(() => {
+      if (!this.minimized()) return;
+      untracked(() => this.dockFlight.set(this.flightToDock()));
     });
 
     // A resize ends when its handles disappear (e.g. the window is maximized mid-resize).
@@ -626,6 +649,15 @@ export class WindowComponent implements DesktopWindow {
     } else if (this.keepInBounds()) {
       this.setRect(clampRect(rect, bounds));
     }
+  }
+
+  private flightToDock(): { dx: string; dy: string; sx: string; sy: string } | null {
+    const rect = this.rect();
+    const tab = this.desktop?.dockTabRect(this.id);
+    if (!rect || !tab || rect.width <= 0 || rect.height <= 0) return null;
+    const dx = tab.x + tab.width / 2 - (rect.x + rect.width / 2);
+    const dy = tab.y + tab.height / 2 - (rect.y + rect.height / 2);
+    return { dx: `${dx}px`, dy: `${dy}px`, sx: `${tab.width / rect.width}`, sy: `${tab.height / rect.height}` };
   }
 
   /** The desktop, when it does not allow windows to overlap. */

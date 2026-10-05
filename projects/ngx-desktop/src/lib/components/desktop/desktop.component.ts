@@ -18,6 +18,7 @@ import {
   input,
   numberAttribute,
 } from '@angular/core';
+import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
 import { DesktopTheme, DockPosition } from '../../models/types';
@@ -64,6 +65,7 @@ export class DesktopComponent {
   protected readonly service = inject(DesktopService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly devMode = inject(DESKTOP_DEV_MODE);
+  private readonly motion = inject(DESKTOP_CONFIG).motion;
 
   /** Theme preset for the desktop, its dock and every window in it. */
   readonly theme = input<DesktopTheme>();
@@ -87,7 +89,13 @@ export class DesktopComponent {
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
-    return { 'omni-desktop': true, [`omni-theme-${theme}`]: !!theme };
+    return {
+      'omni-desktop': true,
+      'omni-motion-system': this.motion === 'system',
+      'omni-motion-full': this.motion === 'full',
+      'omni-motion-none': this.motion === 'none',
+      [`omni-theme-${theme}`]: !!theme,
+    };
   });
 
   constructor() {

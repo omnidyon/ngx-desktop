@@ -44,6 +44,8 @@ export interface SnapPreview {
 export class DesktopService {
   private readonly config = inject(DESKTOP_CONFIG);
   private container: HTMLElement | null = null;
+  /** Finds the dock tab of a window; registered by the dock. */
+  private dockLocator: ((id: string) => Element | null) | null = null;
 
   private readonly _windows = signal<readonly DesktopWindow[]>([]);
   /** Window ids from bottom to top. */
@@ -116,6 +118,23 @@ export class DesktopService {
   isHidden(): boolean {
     const { width, height } = this.bounds();
     return width === 0 || height === 0;
+  }
+
+  /** Lets the dock tell where the tab of a window is. Returns a function that unregisters it. */
+  registerDockLocator(locator: (id: string) => Element | null): () => void {
+    this.dockLocator = locator;
+    return () => {
+      if (this.dockLocator === locator) this.dockLocator = null;
+    };
+  }
+
+  /** The dock tab of a window, in container coordinates, or `null` when it has none. */
+  dockTabRect(id: string): Rect | null {
+    const tab = this.dockLocator?.(id);
+    if (!tab) return null;
+    const box = tab.getBoundingClientRect();
+    const { x, y } = this.toLocal(box.left, box.top);
+    return { x, y, width: box.width, height: box.height };
   }
 
   /** Converts viewport (client) coordinates to container coordinates. */

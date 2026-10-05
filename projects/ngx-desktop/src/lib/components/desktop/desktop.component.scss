@@ -46,13 +46,22 @@
   }
 }
 
-// Less motion when the system asks for it: the snap preview jumps instead of sliding.
+// Less motion when the system asks for it: the snap preview jumps instead of sliding
+// (motion: 'system', the default), and never with motion: 'none'.
 @media (prefers-reduced-motion: reduce) {
-  .omni-snap-preview {
+  :host(.omni-motion-system) .omni-snap-preview {
     transition: none;
   }
 
-  .omni-snap-preview-in {
+  :host(.omni-motion-system) .omni-snap-preview-in {
     animation: none;
   }
+}
+
+:host(.omni-motion-none) .omni-snap-preview {
+  transition: none;
+}
+
+:host(.omni-motion-none) .omni-snap-preview-in {
+  animation: none;
 }

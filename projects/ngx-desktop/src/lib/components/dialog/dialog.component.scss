@@ -79,9 +79,14 @@
   }
 }
 
-// Less motion when the system asks for it: the dialog and its overlay appear and disappear at once.
+// Less motion when the system asks for it: the dialog and its overlay appear and disappear at once
+// (motion: 'system', the default), and never with motion: 'none'.
 @media (prefers-reduced-motion: reduce) {
-  :host {
+  :host(.omni-motion-system) {
     --omni-window-transition-duration: 0s;
   }
+}
+
+:host(.omni-motion-none) {
+  --omni-window-transition-duration: 0s;
 }

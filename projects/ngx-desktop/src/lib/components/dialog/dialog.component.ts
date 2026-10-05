@@ -77,7 +77,8 @@ export class DialogComponent {
   private readonly document = inject(DOCUMENT);
   private readonly stack = inject(DialogStack);
   private readonly userHasInteracted = inject(USER_HAS_INTERACTED);
-  protected readonly zIndex = inject(DESKTOP_CONFIG).zIndex.dialog;
+  private readonly config = inject(DESKTOP_CONFIG);
+  protected readonly zIndex = this.config.zIndex.dialog;
   protected readonly titleId = uniqueId('omni-dialog-title-');
 
   readonly header = input('');
@@ -104,6 +105,9 @@ export class DialogComponent {
     return {
       'omni-dialog-host': true,
       'omni-dialog-modal': this.modal() && this.visible(),
+      'omni-motion-system': this.config.motion === 'system',
+      'omni-motion-full': this.config.motion === 'full',
+      'omni-motion-none': this.config.motion === 'none',
       [`omni-theme-${theme}`]: !!theme,
     };
   });

@@ -32,10 +32,10 @@
   opacity: 1;
   scale: 1;
   visibility: visible;
-  transform-origin: center bottom;
   transition:
     opacity var(--omni-window-transition-duration),
     scale var(--omni-window-transition-duration),
+    translate var(--omni-window-transition-duration),
     visibility 0s;
   animation: omni-window-open var(--omni-window-transition-duration);
 }
@@ -58,7 +58,14 @@
   transition:
     opacity var(--omni-window-transition-duration),
     scale var(--omni-window-transition-duration),
+    translate var(--omni-window-transition-duration),
     visibility 0s linear var(--omni-window-transition-duration);
+}
+
+// Minimized inside a desktop with a dock: shrink into the dock tab (and grow back out of it on restore).
+:host(.omni-window-away.omni-window-to-dock) {
+  translate: var(--omni-dock-dx) var(--omni-dock-dy);
+  scale: var(--omni-dock-sx) var(--omni-dock-sy);
 }
 
 :host(.omni-window-interacting) {
@@ -237,14 +244,24 @@ $corner: 14px;
   }
 }
 
-// Less motion when the system asks for it: windows open, close, minimize and restore without animating.
+// Less motion when the system asks for it: windows open, close, minimize and restore without animating
+// (motion: 'system', the default), and never with motion: 'none'.
 @media (prefers-reduced-motion: reduce) {
-  :host {
+  :host(.omni-motion-system) {
     --omni-window-transition-duration: 0s;
   }
 
-  .omni-widget-grip,
-  .omni-widget-close {
+  :host(.omni-motion-system) .omni-widget-grip,
+  :host(.omni-motion-system) .omni-widget-close {
     transition: none;
   }
+}
+
+:host(.omni-motion-none) {
+  --omni-window-transition-duration: 0s;
+}
+
+:host(.omni-motion-none) .omni-widget-grip,
+:host(.omni-motion-none) .omni-widget-close {
+  transition: none;
 }

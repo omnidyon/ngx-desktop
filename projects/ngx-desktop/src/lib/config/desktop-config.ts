@@ -11,6 +11,16 @@ import { InjectionToken, Provider } from '@angular/core';
 /**
  * @publicApi
  * @description
+ * How windows, dialogs and the snap preview animate:
+ * - `'system'`: animate unless the operating system asks for reduced motion (the default)
+ * - `'full'`: always animate
+ * - `'none'`: never animate
+ */
+export type DesktopMotion = 'system' | 'full' | 'none';
+
+/**
+ * @publicApi
+ * @description
  * Global configuration of ngx-desktop.
  */
 export interface DesktopConfig {
@@ -22,6 +32,8 @@ export interface DesktopConfig {
     /** z-index of dialogs and their overlay. */
     dialog: number;
   };
+  /** Animations; see {@link DesktopMotion}. */
+  motion: DesktopMotion;
 }
 
 /**
@@ -29,6 +41,7 @@ export interface DesktopConfig {
  */
 export const DEFAULT_DESKTOP_CONFIG: DesktopConfig = {
   zIndex: { window: 1000, dock: 1500, dialog: 2000 },
+  motion: 'system',
 };
 
 /**
@@ -47,11 +60,17 @@ export const DESKTOP_CONFIG = new InjectionToken<DesktopConfig>('DESKTOP_CONFIG'
  * Overrides parts of the default configuration.
  *
  * @usageNotes
- * bootstrapApplication(App, { providers: [provideDesktopConfig({ zIndex: { window: 500 } })] });
+ * bootstrapApplication(App, { providers: [provideDesktopConfig({ zIndex: { window: 500 }, motion: 'full' })] });
  */
-export function provideDesktopConfig(config: { zIndex?: Partial<DesktopConfig['zIndex']> }): Provider {
+export function provideDesktopConfig(config: {
+  zIndex?: Partial<DesktopConfig['zIndex']>;
+  motion?: DesktopMotion;
+}): Provider {
   return {
     provide: DESKTOP_CONFIG,
-    useValue: { zIndex: { ...DEFAULT_DESKTOP_CONFIG.zIndex, ...config.zIndex } } satisfies DesktopConfig,
+    useValue: {
+      zIndex: { ...DEFAULT_DESKTOP_CONFIG.zIndex, ...config.zIndex },
+      motion: config.motion ?? DEFAULT_DESKTOP_CONFIG.motion,
+    } satisfies DesktopConfig,
   };
 }

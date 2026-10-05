@@ -207,6 +207,29 @@ export class App {
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Motion</b></summary>
+
+Windows open, close, minimize and restore with short animations. A window minimized inside a desktop shrinks into its
+dock tab and grows back out of it when restored.
+
+By default the animations follow the operating system: when it asks for reduced motion (Windows: _Settings →
+Accessibility → Visual effects → Animation effects_ off; macOS: _Reduce motion_) nothing animates. Apps can override
+that:
+
+```ts
+bootstrapApplication(App, { providers: [provideDesktopConfig({ motion: 'full' })] });
+```
+
+| `motion`   | Meaning                                                     |
+| ---------- | ----------------------------------------------------------- |
+| `'system'` | animate unless the system asks for reduced motion (default) |
+| `'full'`   | always animate                                              |
+| `'none'`   | never animate                                               |
+
+The animation length is `--omni-window-transition-duration` (see _Styling_).
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Styling</b></summary>
 
 When installed, windows, dialogs and the dock come in a default style. You can restyle them by defining any of the
