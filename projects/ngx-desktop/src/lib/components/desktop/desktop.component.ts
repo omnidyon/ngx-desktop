@@ -35,6 +35,8 @@ import { DockComponent } from '../dock/dock.component';
  *   Dragging a snapped window out again restores its previous size.
  * - **Windows** (`snapToWindows`): edges within `snapThreshold` px of another window's edge
  *   (or the desktop's edge) line up with it, while moving and while resizing.
+ * - **Padding** (`snapPadding`): gap in px kept around and between zone-snapped windows,
+ *   between windows lined up side by side and between windows and the desktop edges.
  *
  * @usageNotes
  * <omni-desktop theme="neo-tokyo" dock="bottom" [snapThreshold]="20">
@@ -67,6 +69,8 @@ export class DesktopComponent {
   readonly snapToWindows = input(true, { transform: booleanAttribute });
   /** Distance in px at which edges and zones attract a window. */
   readonly snapThreshold = input(DEFAULT_SNAP_THRESHOLD, { transform: numberAttribute });
+  /** Gap in px kept around and between snapped windows. */
+  readonly snapPadding = input(0, { transform: numberAttribute });
 
   protected readonly dockPosition = computed(() => {
     const dock = this.dock();
@@ -85,6 +89,7 @@ export class DesktopComponent {
       snapToZones: this.snapToZones,
       snapToWindows: this.snapToWindows,
       snapThreshold: this.snapThreshold,
+      snapPadding: this.snapPadding,
     };
 
     // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).

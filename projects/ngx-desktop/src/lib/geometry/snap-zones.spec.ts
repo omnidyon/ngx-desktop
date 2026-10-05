@@ -65,5 +65,45 @@ describe('snap zones', () => {
       expect(right.x + right.width).toBe(odd.x + odd.width);
       expect(right.y + right.height).toBe(odd.y + odd.height);
     });
+
+    describe('with padding', () => {
+      const p = 10;
+
+      it('keeps the padding from the bounds edges and between halves', () => {
+        // 1000 wide: 10 | 485 | 10 | 485 | 10
+        expect(zoneRect('left', bounds, p)).toEqual({ x: 10, y: 10, width: 485, height: 780 });
+        expect(zoneRect('right', bounds, p)).toEqual({ x: 505, y: 10, width: 485, height: 780 });
+      });
+
+      it('keeps the padding between quarters', () => {
+        // 800 high: 10 | 385 | 10 | 385 | 10
+        expect(zoneRect('topleft', bounds, p)).toEqual({ x: 10, y: 10, width: 485, height: 385 });
+        expect(zoneRect('bottomright', bounds, p)).toEqual({ x: 505, y: 405, width: 485, height: 385 });
+      });
+
+      it('leaves exactly the padding between neighbours for odd sizes', () => {
+        const odd = { x: 0, y: 0, width: 301, height: 201 };
+        const tl = zoneRect('topleft', odd, 7);
+        const br = zoneRect('bottomright', odd, 7);
+        expect(br.x - (tl.x + tl.width)).toBe(7);
+        expect(br.y - (tl.y + tl.height)).toBe(7);
+        expect(odd.width - (br.x + br.width)).toBe(7);
+        expect(odd.height - (br.y + br.height)).toBe(7);
+      });
+
+      it('still maximizes to the whole bounds', () => {
+        expect(zoneRect('maximize', bounds, p)).toEqual(bounds);
+      });
+
+      it('never returns negative sizes for huge padding', () => {
+        const rect = zoneRect('left', { x: 0, y: 0, width: 20, height: 20 }, 50);
+        expect(rect.width).toBeGreaterThanOrEqual(0);
+        expect(rect.height).toBeGreaterThanOrEqual(0);
+      });
+
+      it('treats negative padding as none', () => {
+        expect(zoneRect('left', bounds, -5)).toEqual(zoneRect('left', bounds));
+      });
+    });
   });
 });

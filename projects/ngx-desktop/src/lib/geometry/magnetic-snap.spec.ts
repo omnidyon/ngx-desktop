@@ -65,7 +65,51 @@ describe('magnetic snapping', () => {
     });
   });
 
+  describe('magneticMove with a gap', () => {
+    const gap = 8;
+
+    it('keeps the gap when placed flush beside another window', () => {
+      // right edge at 385: snaps to 400 - 8 = 392
+      const rect = { x: 285, y: 320, width: 100, height: 100 };
+      expect(magneticMove(rect, [other], bounds, t, gap)).toMatchObject({ x: 292 });
+    });
+
+    it('keeps the gap below another window', () => {
+      const rect = { x: 420, y: 512, width: 100, height: 100 };
+      expect(magneticMove(rect, [other], bounds, t, gap)).toMatchObject({ y: 508 });
+    });
+
+    it('keeps aligned edges exact', () => {
+      // stacked below with the gap; left edges 6px apart → aligned to 400, not 408
+      const rect = { x: 406, y: 508, width: 150, height: 100 };
+      expect(magneticMove(rect, [other], bounds, t, gap)).toMatchObject({ x: 400, y: 508 });
+    });
+
+    it('keeps the gap from the bounds edges', () => {
+      expect(magneticMove({ x: 3, y: 790, width: 100, height: 5 }, [], bounds, t, gap)).toMatchObject({
+        x: 8,
+        y: 787,
+      });
+    });
+
+    it('still finds stacked neighbours that are a gap apart', () => {
+      // 20px below other: beyond the threshold alone (16) but within threshold + gap (24)
+      const rect = { x: 405, y: 520, width: 100, height: 50 };
+      expect(magneticMove(rect, [other], null, t, gap)).toMatchObject({ x: 400 });
+    });
+  });
+
   describe('magneticResize', () => {
+    it('keeps the gap when resizing towards another window', () => {
+      const rect = { x: 100, y: 320, width: 290, height: 100 };
+      expect(magneticResize(rect, 'e', [other], bounds, t, min, 8)).toEqual({
+        x: 100,
+        y: 320,
+        width: 292,
+        height: 100,
+      });
+    });
+
     it('snaps the dragged east edge to another window', () => {
       const rect = { x: 100, y: 320, width: 290, height: 100 };
       expect(magneticResize(rect, 'e', [other], bounds, t, min)).toEqual({ x: 100, y: 320, width: 300, height: 100 });

@@ -283,14 +283,15 @@ export class WindowComponent implements DesktopWindow {
 
     const desktop = this.snappingDesktop();
     if (desktop) {
-      const { snapToZones, snapToWindows, snapThreshold } = desktop.settings;
+      const { snapToZones, snapToWindows, snapThreshold, snapPadding } = desktop.settings;
       const pointer = desktop.toLocal(event.clientX, event.clientY);
       this.dragZone = snapToZones() ? detectZone(pointer, bounds, snapThreshold()) : null;
       if (!this.dragZone && snapToWindows()) {
-        next = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold());
+        next = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold(), snapPadding());
         if (this.keepInBounds()) next = clampRect(next, bounds);
       }
-      desktop.showSnapPreview(this.dragZone ? { rect: zoneRect(this.dragZone, bounds), zIndex: this.zIndex() } : null);
+      const preview = this.dragZone ? zoneRect(this.dragZone, bounds, snapPadding()) : null;
+      desktop.showSnapPreview(preview ? { rect: preview, zIndex: this.zIndex() } : null);
     }
 
     this.rect.set(next);
@@ -312,7 +313,7 @@ export class WindowComponent implements DesktopWindow {
         this.maximized.set(true);
       } else {
         this.snapZone = zone;
-        this.rect.set(zoneRect(zone, this.bounds()));
+        this.rect.set(zoneRect(zone, this.bounds(), this.snapPadding()));
       }
       this.snapped.emit(zone);
     }
@@ -344,7 +345,8 @@ export class WindowComponent implements DesktopWindow {
     const desktop = this.snappingDesktop();
     if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
-      next = magneticResize(next, direction, others, bounds, desktop.settings.snapThreshold(), minSize);
+      const { snapThreshold, snapPadding } = desktop.settings;
+      next = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding());
     }
     this.rect.set(next);
   }
@@ -371,10 +373,15 @@ export class WindowComponent implements DesktopWindow {
     if (!rect || this.interactionStart) return;
     const bounds = this.bounds();
     if (this.snapZone) {
-      this.rect.set(zoneRect(this.snapZone, bounds));
+      this.rect.set(zoneRect(this.snapZone, bounds, this.snapPadding()));
     } else if (this.keepInBounds()) {
       this.rect.set(clampRect(rect, bounds));
     }
+  }
+
+  /** Gap kept around snapped windows (0 outside a desktop). */
+  private snapPadding(): number {
+    return this.desktop?.settings.snapPadding() ?? 0;
   }
 
   /** The desktop, when this window takes part in snapping. */

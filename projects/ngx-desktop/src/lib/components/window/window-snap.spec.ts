@@ -9,7 +9,7 @@ import { WindowComponent } from './window.component';
 @Component({
   imports: [DesktopComponent, WindowComponent],
   template: `
-    <omni-desktop [snapToZones]="zones()" [snapToWindows]="magnetic()" dock="none">
+    <omni-desktop [snapToZones]="zones()" [snapToWindows]="magnetic()" [snapPadding]="padding()" dock="none">
       <omni-window
         class="a"
         header="A"
@@ -29,6 +29,7 @@ class HostComponent {
   readonly zones = signal(true);
   readonly magnetic = signal(true);
   readonly snappable = signal(true);
+  readonly padding = signal(0);
   snaps: (SnapZone | null)[] = [];
 }
 
@@ -94,6 +95,18 @@ describe('Window snapping inside a desktop', () => {
       expect(a().rect()).toEqual({ x: 0, y: 0, width: 400, height: 600 });
       expect(host.snaps).toEqual(['left']);
       expect(preview()).toBeNull();
+    });
+
+    it('keeps the snap padding around a snapped window and in the preview', async () => {
+      host.padding.set(12);
+      await stable();
+      pointer(header(), 'pointerdown', 100, 10);
+      pointer(document, 'pointermove', 5, 300);
+      await stable();
+      expect(preview()!.style.width).toBe(`${Math.round((800 - 36) / 2)}px`);
+      pointer(document, 'pointerup', 5, 300);
+      await stable();
+      expect(a().rect()).toEqual({ x: 12, y: 12, width: 382, height: 576 });
     });
 
     it('snaps to a quarter in a corner', async () => {
@@ -190,6 +203,14 @@ describe('Window snapping inside a desktop', () => {
       // Without snapping A would land at (90, 260): right edge 10px left of B, top 10px below B's top.
       await dragA(190, 270);
       expect(a().rect()).toEqual({ x: 100, y: 250, width: 200, height: 100 });
+    });
+
+    it('keeps the snap padding between windows lined up side by side', async () => {
+      host.padding.set(10);
+      await stable();
+      // Lands at (85, 255) without snapping: right edge 15px left of B, top 5px below B's top.
+      await dragA(185, 265);
+      expect(a().rect()).toEqual({ x: 90, y: 250, width: 200, height: 100 });
     });
 
     it('does not line windows up when snapToWindows is off', async () => {

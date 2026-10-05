@@ -20,6 +20,7 @@ export interface DesktopSettings {
   snapToZones: Signal<boolean>;
   snapToWindows: Signal<boolean>;
   snapThreshold: Signal<number>;
+  snapPadding: Signal<number>;
 }
 
 /** @internal */
@@ -54,6 +55,7 @@ export class DesktopService {
     snapToZones: signal(true),
     snapToWindows: signal(true),
     snapThreshold: signal(DEFAULT_SNAP_THRESHOLD),
+    snapPadding: signal(0),
   };
 
   readonly windows = this._windows.asReadonly();

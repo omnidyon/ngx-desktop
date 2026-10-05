@@ -8,21 +8,45 @@
 
 import { Rect, ResizeDirection, Size } from '../models/types';
 
-/** Edge lines a moving rectangle can snap to on one axis. */
-function snapLines(moving: Rect, others: readonly Rect[], bounds: Rect | null, threshold: number, axis: 'x' | 'y') {
+/** Lines the start edge (left/top) and the end edge (right/bottom) of a moving rect can snap to. */
+interface SnapLines {
+  start: number[];
+  end: number[];
+}
+
+/**
+ * Collects snap lines on one axis.
+ * - flush: my start edge to your end edge (and vice versa), kept `gap` apart
+ * - aligned: my start edge to your start edge, my end edge to your end edge, exact
+ * - bounds: my start/end edge to the bounds edges, kept `gap` inside
+ */
+function snapLines(
+  moving: Rect,
+  others: readonly Rect[],
+  bounds: Rect | null,
+  threshold: number,
+  gap: number,
+  axis: 'x' | 'y'
+): SnapLines {
   const size = axis === 'x' ? 'width' : 'height';
   const cross = axis === 'x' ? 'y' : 'x';
   const crossSize = axis === 'x' ? 'height' : 'width';
-  const lines: number[] = bounds ? [bounds[axis], bounds[axis] + bounds[size]] : [];
+  const lines: SnapLines = bounds
+    ? { start: [bounds[axis] + gap], end: [bounds[axis] + bounds[size] - gap] }
+    : { start: [], end: [] };
 
   for (const other of others) {
     // Only windows that are beside (or close to) the moving one on the other axis attract it;
     // a window far above should not pull a window's left edge into line with it.
-    const gap = Math.max(
+    const crossDistance = Math.max(
       other[cross] - (moving[cross] + moving[crossSize]),
       moving[cross] - (other[cross] + other[crossSize])
     );
-    if (gap <= threshold) lines.push(other[axis], other[axis] + other[size]);
+    if (crossDistance > threshold + gap) continue;
+    const otherStart = other[axis];
+    const otherEnd = other[axis] + other[size];
+    lines.start.push(otherEnd + gap, otherStart);
+    lines.end.push(otherStart - gap, otherEnd);
   }
   return lines;
 }
@@ -49,19 +73,26 @@ function closest(a: number | null, b: number | null): number {
  * @description
  * Magnetic snapping while moving: when an edge of the moving rectangle comes within `threshold`
  * of an edge of another window (or of the bounds), the rectangle is shifted so the edges line up.
- * Both "flush" (my left to your right) and "aligned" (my left to your left) alignments count.
+ * Windows placed side by side ("flush") and the bounds edges keep `gap` px between them;
+ * edges that are lined up ("aligned", my left to your left) match exactly.
  * The x and y axes snap independently. The size never changes.
  */
-export function magneticMove(moving: Rect, others: readonly Rect[], bounds: Rect | null, threshold: number): Rect {
-  const xLines = snapLines(moving, others, bounds, threshold, 'x');
-  const yLines = snapLines(moving, others, bounds, threshold, 'y');
+export function magneticMove(
+  moving: Rect,
+  others: readonly Rect[],
+  bounds: Rect | null,
+  threshold: number,
+  gap = 0
+): Rect {
+  const x = snapLines(moving, others, bounds, threshold, gap, 'x');
+  const y = snapLines(moving, others, bounds, threshold, gap, 'y');
   const dx = closest(
-    nearestOffset(moving.x, xLines, threshold),
-    nearestOffset(moving.x + moving.width, xLines, threshold)
+    nearestOffset(moving.x, x.start, threshold),
+    nearestOffset(moving.x + moving.width, x.end, threshold)
   );
   const dy = closest(
-    nearestOffset(moving.y, yLines, threshold),
-    nearestOffset(moving.y + moving.height, yLines, threshold)
+    nearestOffset(moving.y, y.start, threshold),
+    nearestOffset(moving.y + moving.height, y.end, threshold)
   );
   return { ...moving, x: moving.x + dx, y: moving.y + dy };
 }
@@ -70,7 +101,8 @@ export function magneticMove(moving: Rect, others: readonly Rect[], bounds: Rect
  * @internal
  * @description
  * Magnetic snapping while resizing: only the edges being dragged snap to nearby edges of other
- * windows (or of the bounds). A snap that would make the rectangle smaller than `minSize` is skipped.
+ * windows (or of the bounds), with the same `gap` rules as {@link magneticMove}.
+ * A snap that would make the rectangle smaller than `minSize` is skipped.
  */
 export function magneticResize(
   rect: Rect,
@@ -78,29 +110,30 @@ export function magneticResize(
   others: readonly Rect[],
   bounds: Rect | null,
   threshold: number,
-  minSize: Size
+  minSize: Size,
+  gap = 0
 ): Rect {
   let left = rect.x;
   let top = rect.y;
   let right = rect.x + rect.width;
   let bottom = rect.y + rect.height;
-  const xLines = snapLines(rect, others, bounds, threshold, 'x');
-  const yLines = snapLines(rect, others, bounds, threshold, 'y');
+  const x = snapLines(rect, others, bounds, threshold, gap, 'x');
+  const y = snapLines(rect, others, bounds, threshold, gap, 'y');
 
   if (direction.includes('w')) {
-    const offset = nearestOffset(left, xLines, threshold);
+    const offset = nearestOffset(left, x.start, threshold);
     if (offset !== null && right - (left + offset) >= minSize.width) left += offset;
   }
   if (direction.includes('e')) {
-    const offset = nearestOffset(right, xLines, threshold);
+    const offset = nearestOffset(right, x.end, threshold);
     if (offset !== null && right + offset - left >= minSize.width) right += offset;
   }
   if (direction.includes('n')) {
-    const offset = nearestOffset(top, yLines, threshold);
+    const offset = nearestOffset(top, y.start, threshold);
     if (offset !== null && bottom - (top + offset) >= minSize.height) top += offset;
   }
   if (direction.includes('s')) {
-    const offset = nearestOffset(bottom, yLines, threshold);
+    const offset = nearestOffset(bottom, y.end, threshold);
     if (offset !== null && bottom + offset - top >= minSize.height) bottom += offset;
   }
 

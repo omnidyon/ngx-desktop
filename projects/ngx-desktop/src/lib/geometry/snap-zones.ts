@@ -65,16 +65,24 @@ export function detectZone(pointer: { x: number; y: number }, bounds: Rect, thre
 /**
  * @internal
  * @description
- * The rectangle a window takes when snapped into a zone.
+ * The rectangle a window takes when snapped into a zone. `padding` is kept free between the
+ * zone and the bounds edges and between neighbouring zones (halves/quarters); `maximize`
+ * always fills the whole bounds, like the maximize button.
  */
-export function zoneRect(zone: SnapZone, bounds: Rect): Rect {
-  const halfWidth = Math.round(bounds.width / 2);
-  const halfHeight = Math.round(bounds.height / 2);
-  const left = { x: bounds.x, width: halfWidth };
-  const right = { x: bounds.x + halfWidth, width: bounds.width - halfWidth };
-  const top = { y: bounds.y, height: halfHeight };
-  const bottom = { y: bounds.y + halfHeight, height: bounds.height - halfHeight };
-  const full = { y: bounds.y, height: bounds.height };
+export function zoneRect(zone: SnapZone, bounds: Rect, padding = 0): Rect {
+  if (zone === 'maximize') return { ...bounds };
+
+  const p = Math.max(padding, 0);
+  // Room left for the two halves once the outer gaps and the gap between them are taken out.
+  const innerWidth = Math.max(bounds.width - 3 * p, 0);
+  const innerHeight = Math.max(bounds.height - 3 * p, 0);
+  const leftWidth = Math.round(innerWidth / 2);
+  const topHeight = Math.round(innerHeight / 2);
+  const left = { x: bounds.x + p, width: leftWidth };
+  const right = { x: bounds.x + 2 * p + leftWidth, width: innerWidth - leftWidth };
+  const top = { y: bounds.y + p, height: topHeight };
+  const bottom = { y: bounds.y + 2 * p + topHeight, height: innerHeight - topHeight };
+  const full = { y: bounds.y + p, height: Math.max(bounds.height - 2 * p, 0) };
 
   switch (zone) {
     case 'left':
@@ -89,7 +97,5 @@ export function zoneRect(zone: SnapZone, bounds: Rect): Rect {
       return { ...left, ...bottom };
     case 'bottomright':
       return { ...right, ...bottom };
-    case 'maximize':
-      return { ...bounds };
   }
 }

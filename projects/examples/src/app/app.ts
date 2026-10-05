@@ -36,10 +36,15 @@ export class App {
   protected readonly notesOpen = signal(true);
   protected readonly snapToZones = signal(true);
   protected readonly snapToWindows = signal(true);
+  protected readonly snapPadding = signal(8);
   protected readonly log = signal<string[]>([]);
 
   protected setTheme(event: Event): void {
     this.theme.set((event.target as HTMLSelectElement).value as DesktopTheme);
+  }
+
+  protected setSnapPadding(event: Event): void {
+    this.snapPadding.set(Math.max(0, Number((event.target as HTMLInputElement).value) || 0));
   }
 
   protected setDock(event: Event): void {
