@@ -75,10 +75,6 @@
       (dragStart)="onResizeStart()"
       (dragMove)="onResizeMove(direction, $event)"
       (dragEnd)="onResizeEnd()"
-    >
-      @if (direction === 'se') {
-        <omni-resize-icon class="omni-resize-grip" />
-      }
-    </div>
+    ></div>
   }
 }

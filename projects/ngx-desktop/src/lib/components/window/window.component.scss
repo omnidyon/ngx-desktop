@@ -174,18 +174,6 @@ $corner: 14px;
   right: 0;
   bottom: 0;
   cursor: nwse-resize;
-  // The grip sits inside the rounded corner, like the original sgm window.
-  width: calc($corner + var(--omni-window-border-radius) / 2);
-  height: calc($corner + var(--omni-window-border-radius) / 2);
-}
-
-.omni-resize-grip {
-  position: absolute;
-  right: calc(var(--omni-window-border-radius) / 4);
-  bottom: calc(var(--omni-window-border-radius) / 4);
-  width: 12px;
-  height: 12px;
-  color: var(--omni-window-resize-color);
 }
 
 @keyframes omni-window-open {

@@ -26,7 +26,6 @@ values below on the component itself or on any ancestor element (for example `om
 | --omni-window-content-padding     | content padding                                          | 5px                |
 | --omni-window-icon-size           | max size of the header icon                              | 24px               |
 | --omni-window-button-size         | size of the header buttons                               | 20px               |
-| --omni-window-resize-color        | color of the resize grip                                 | grey               |
 | --omni-window-collapsed-width     | width of a minimized window outside a desktop            | 105px              |
 | --omni-window-transition-duration | open/close/minimize animation duration                   | 300ms              |
 | --omni-dialog-background          | dialog background                                        | rgb(86, 60, 86)    |

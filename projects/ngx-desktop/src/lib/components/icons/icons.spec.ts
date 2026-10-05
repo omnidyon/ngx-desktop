@@ -5,7 +5,6 @@ import { FullScreenIconComponent } from './full-screen-icon/full-screen-icon.com
 import { MaximizeIconComponent } from './maximize-icon/maximize-icon.component';
 import { MinimizeIconComponent } from './minimize-icon/minimize-icon.component';
 import { MoveIconComponent } from './move-icon/move-icon.component';
-import { ResizeIconComponent } from './resize-icon/resize-icon.component';
 
 describe('icons', () => {
   const icons: Type<unknown>[] = [
@@ -14,7 +13,6 @@ describe('icons', () => {
     MaximizeIconComponent,
     MinimizeIconComponent,
     MoveIconComponent,
-    ResizeIconComponent,
   ];
 
   for (const icon of icons) {

@@ -108,12 +108,6 @@
     initial-value: 20px;
   }
 
-  @property --omni-window-resize-color {
-    syntax: '<color>';
-    inherits: true;
-    initial-value: grey;
-  }
-
   @property --omni-window-collapsed-width {
     syntax: '<length>';
     inherits: true;

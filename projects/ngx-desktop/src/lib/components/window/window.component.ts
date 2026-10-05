@@ -40,7 +40,6 @@ import { FullScreenIconComponent } from '../icons/full-screen-icon/full-screen-i
 import { MaximizeIconComponent } from '../icons/maximize-icon/maximize-icon.component';
 import { MinimizeIconComponent } from '../icons/minimize-icon/minimize-icon.component';
 import { MoveIconComponent } from '../icons/move-icon/move-icon.component';
-import { ResizeIconComponent } from '../icons/resize-icon/resize-icon.component';
 
 /** @internal */
 export const DEFAULT_MIN_WIDTH = 130;
@@ -74,7 +73,6 @@ let standaloneTop = 0;
     MaximizeIconComponent,
     MinimizeIconComponent,
     MoveIconComponent,
-    ResizeIconComponent,
   ],
   templateUrl: './window.component.html',
   styleUrl: './window.component.scss',
