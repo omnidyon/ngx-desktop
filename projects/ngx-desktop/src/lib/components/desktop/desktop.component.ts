@@ -18,6 +18,7 @@ import {
   input,
   numberAttribute,
 } from '@angular/core';
+import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
 import { DesktopTheme, DockPosition } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
@@ -62,6 +63,7 @@ import { DockComponent } from '../dock/dock.component';
 export class DesktopComponent {
   protected readonly service = inject(DesktopService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly devMode = inject(DESKTOP_DEV_MODE);
 
   /** Theme preset for the desktop, its dock and every window in it. */
   readonly theme = input<DesktopTheme>();
@@ -102,10 +104,25 @@ export class DesktopComponent {
     // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).
     afterNextRender(() => {
       this.service.updateSize();
+      this.warnIfSizeless(element);
       if (typeof ResizeObserver === 'undefined') return;
       const observer = new ResizeObserver(() => this.service.updateSize());
       observer.observe(element);
       this.destroyRef.onDestroy(() => observer.disconnect());
     });
+  }
+
+  /**
+   * A desktop that is on the page but has no width or height (usually a parent without a height)
+   * looks hidden, so its windows wait forever. Say so once, in development builds only. Desktops
+   * hidden on purpose (`display: none`, an inactive tab) have no offsetParent and are not reported.
+   */
+  private warnIfSizeless(element: HTMLElement): void {
+    if (!this.devMode || !this.service.isHidden() || element.offsetParent === null) return;
+    console.warn(
+      '[ngx-desktop] <omni-desktop> has no width or height, so its windows wait until it gets one. ' +
+        'It fills its parent: give the parent a size (for example height: 100vh).',
+      element
+    );
   }
 }

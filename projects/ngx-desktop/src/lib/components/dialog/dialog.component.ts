@@ -29,6 +29,7 @@ import { DesktopTheme } from '../../models/types';
 import { uniqueId } from '../../utils/unique-id';
 import { CloseIconComponent } from '../icons/close-icon/close-icon.component';
 import { DialogStack } from './dialog-stack';
+import { USER_HAS_INTERACTED } from './user-activation';
 
 const FOCUSABLE = [
   'a[href]',
@@ -46,9 +47,13 @@ const FOCUSABLE = [
  * A centered dialog with an optional modal overlay. Shares its look with `<omni-window>`
  * but is not draggable or resizable.
  *
- * Keyboard: when it opens, focus moves to the first control in its content or footer (or to the
- * dialog itself) — except for a non-modal dialog that is already open when the page renders; while it is modal, Tab stays inside it; when it closes, focus goes back to where it
- * was. Escape closes the topmost open dialog only.
+ * Keyboard:
+ * - When it opens, focus moves to the first control in its content or footer, or to the dialog itself.
+ * - A non-modal dialog does that only once the user has interacted with the page, so a dialog that
+ *   is open while the page loads does not take focus. A modal dialog always does.
+ * - While it is modal, Tab stays inside it.
+ * - When it closes, focus goes back to where it was.
+ * - Escape closes the topmost open dialog only.
  *
  * @usageNotes
  * <omni-dialog [(visible)]="open" header="Confirm" [modal]="true">
@@ -71,6 +76,7 @@ const FOCUSABLE = [
 export class DialogComponent {
   private readonly document = inject(DOCUMENT);
   private readonly stack = inject(DialogStack);
+  private readonly userHasInteracted = inject(USER_HAS_INTERACTED);
   protected readonly zIndex = inject(DESKTOP_CONFIG).zIndex.dialog;
   protected readonly titleId = uniqueId('omni-dialog-title-');
 
@@ -92,8 +98,6 @@ export class DialogComponent {
   /** The rendered panel while the dialog is open, and the element that had focus before it opened. */
   private openPanel: HTMLElement | null = null;
   private returnFocus: HTMLElement | null = null;
-  /** Set after the first render: a non-modal dialog that is already open then does not take focus. */
-  private rendered = false;
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -108,11 +112,9 @@ export class DialogComponent {
     // Runs after rendering, so the panel exists (or is gone) when focus is moved.
     afterRenderEffect(() => {
       const panel = this.panel()?.nativeElement ?? null;
-      const firstRender = !this.rendered;
-      this.rendered = true;
-      // Opened by the user (after the first render) or modal: move focus in. A non-modal dialog that is
-      // simply open when the page loads leaves focus where it is.
-      if (panel && panel !== this.openPanel) this.onOpened(panel, !firstRender || untracked(this.modal));
+      // A modal dialog always takes focus. A non-modal one does once the user has interacted with the
+      // page (it was opened in response to them); before that it leaves focus where it is.
+      if (panel && panel !== this.openPanel) this.onOpened(panel, untracked(this.modal) || this.userHasInteracted());
       if (!panel && this.openPanel) this.onClosed();
     });
 

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal, viewChildren } from '@angular/core';
+import { Rect } from '../../models/types';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { InMemoryLayoutStorage } from '../../persistence/layout-storage';
@@ -10,8 +11,16 @@ import { WindowComponent } from './window.component';
 @Component({
   imports: [DesktopComponent, WindowComponent],
   template: `
-    <omni-desktop dock="none">
-      <omni-window class="first" header="First" position="topleft" [width]="200" [height]="100" />
+    <omni-desktop dock="none" [allowOverlap]="allow()">
+      <omni-window
+        class="first"
+        header="First"
+        position="topleft"
+        [width]="200"
+        [height]="100"
+        persistKey="first"
+        [(rect)]="firstRect"
+      />
       @if (added()) {
         <omni-window class="added" header="Added" position="bottomright" [width]="300" [height]="200" />
       }
@@ -22,11 +31,14 @@ import { WindowComponent } from './window.component';
 class HostComponent {
   readonly windows = viewChildren(WindowComponent);
   readonly added = signal(false);
+  readonly allow = signal(true);
+  readonly firstRect = signal<Rect | null>(null);
 }
 
 /** Windows that are opened while their desktop is hidden (another tab, a collapsed panel, display: none). */
 describe('Windows opened while the desktop is hidden', () => {
   let fixture: ComponentFixture<HostComponent>;
+  let storage: InMemoryLayoutStorage;
   let host: HostComponent;
   let width = 800;
   let height = 600;
@@ -52,7 +64,8 @@ describe('Windows opened while the desktop is hidden', () => {
     height = 600;
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => height);
-    TestBed.configureTestingModule({ providers: [provideDesktopLayoutStorage(new InMemoryLayoutStorage())] });
+    storage = new InMemoryLayoutStorage();
+    TestBed.configureTestingModule({ providers: [provideDesktopLayoutStorage(storage)] });
     fixture = TestBed.createComponent(HostComponent);
     host = fixture.componentInstance;
     await settle();
@@ -86,6 +99,44 @@ describe('Windows opened while the desktop is hidden', () => {
     await settle();
     expect(addedElement().classList).not.toContain('omni-window-measuring');
     expect(added().rect()).toEqual({ x: 0, y: 0, width: 100, height: 50 });
+  });
+
+  describe('changes made from code while the desktop is hidden', () => {
+    const first = () => host.windows().find((w) => w.header() === 'First')!;
+    const afterSaveDelay = () => new Promise((resolve) => setTimeout(resolve, 400));
+
+    it('keeps a rect set through [(rect)] as given, and fits it once the desktop is shown again', async () => {
+      await measure(0, 0);
+      host.firstRect.set({ x: 600, y: 450, width: 300, height: 200 });
+      await settle();
+      expect(first().rect()).toEqual({ x: 600, y: 450, width: 300, height: 200 });
+      await afterSaveDelay();
+      expect((await storage.load('first'))?.rect).toEqual({ x: 600, y: 450, width: 300, height: 200 });
+
+      await measure(700, 500); // shown again, smaller than the rect needs
+      expect(first().rect()).toEqual({ x: 400, y: 300, width: 300, height: 200 });
+    });
+
+    it('fits a rect set while hidden even when the desktop comes back at the same size', async () => {
+      await measure(0, 0);
+      host.firstRect.set({ x: 900, y: 0, width: 200, height: 100 });
+      await settle();
+      await measure(800, 600);
+      expect(first().rect()).toEqual({ x: 600, y: 0, width: 200, height: 100 });
+    });
+
+    it('restores a window without overlap checks against the 0 × 0 size', async () => {
+      host.allow.set(false);
+      await settle();
+      first().toggleMinimize();
+      await settle();
+      await measure(0, 0);
+      first().restore();
+      await settle();
+      expect(first().rect()).toEqual({ x: 0, y: 0, width: 200, height: 100 });
+      await afterSaveDelay();
+      expect((await storage.load('first'))?.rect).toEqual({ x: 0, y: 0, width: 200, height: 100 });
+    });
   });
 
   it('keeps already placed windows unchanged while hidden', async () => {

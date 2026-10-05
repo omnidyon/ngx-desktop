@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { WindowFooterDirective } from '../../directives/window-slots.directive';
 import { DesktopTheme } from '../../models/types';
 import { DialogComponent } from './dialog.component';
+import { USER_HAS_INTERACTED } from './user-activation';
 
 /** A modal dialog with only text and no close button: nothing inside it can take focus. */
 @Component({
@@ -11,6 +12,20 @@ import { DialogComponent } from './dialog.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class PlainDialogHostComponent {}
+
+/** A non-modal dialog the app creates later, in response to a user action. */
+@Component({
+  imports: [DialogComponent],
+  template: `
+    @if (show()) {
+      <omni-dialog header="Later"><input class="later-field" /></omni-dialog>
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class CreatedLaterHostComponent {
+  readonly show = signal(false);
+}
 
 /** Dialogs that are already open when the page renders. */
 @Component({
@@ -151,21 +166,12 @@ describe('DialogComponent', () => {
       expect(document.activeElement).toBe(panel);
     });
 
-    it('does not take focus when a non-modal dialog is already open on page load', async () => {
-      const outside = document.createElement('button');
-      document.body.appendChild(outside);
-      outside.focus();
-      const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
-      await onLoad.whenStable();
-      expect(document.activeElement).toBe(outside);
-      outside.remove();
-    });
-
-    it('takes focus when a modal dialog is already open on page load', async () => {
-      const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
-      onLoad.componentInstance.modal = true;
-      await onLoad.whenStable();
-      expect(document.activeElement).toBe((onLoad.nativeElement as HTMLElement).querySelector('.load-field'));
+    it('takes focus when a non-modal dialog is created after the page has loaded', async () => {
+      const later = TestBed.createComponent(CreatedLaterHostComponent);
+      await later.whenStable();
+      later.componentInstance.show.set(true);
+      await later.whenStable();
+      expect(document.activeElement).toBe((later.nativeElement as HTMLElement).querySelector('.later-field'));
     });
 
     it('keeps Tab inside a modal dialog', async () => {
@@ -205,5 +211,29 @@ describe('DialogComponent', () => {
     const dialogHost = query('omni-dialog')!;
     expect(dialogHost.classList).toContain('omni-theme-twitch');
     expect(dialogHost.style.zIndex).toBe('2000');
+  });
+});
+
+/** Dialogs that are open before the user has interacted with the page (e.g. while it loads). */
+describe('DialogComponent open on page load', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [{ provide: USER_HAS_INTERACTED, useValue: () => false }] });
+  });
+
+  it('does not take focus when a non-modal dialog is already open on page load', async () => {
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    outside.focus();
+    const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
+    await onLoad.whenStable();
+    expect(document.activeElement).toBe(outside);
+    outside.remove();
+  });
+
+  it('takes focus when a modal dialog is already open on page load', async () => {
+    const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
+    onLoad.componentInstance.modal = true;
+    await onLoad.whenStable();
+    expect(document.activeElement).toBe((onLoad.nativeElement as HTMLElement).querySelector('.load-field'));
   });
 });

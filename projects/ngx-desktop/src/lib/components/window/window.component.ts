@@ -274,7 +274,9 @@ export class WindowComponent implements DesktopWindow {
     effect(() => {
       const desktop = this.desktop;
       if (!desktop) return;
-      desktop.size();
+      // shownCount changes on every resize and when a hidden desktop is shown again (even at the same
+      // size), so rects accepted while it was hidden are fitted once it is visible.
+      desktop.shownCount();
       untracked(() => this.fitToBounds());
     });
 
@@ -595,6 +597,11 @@ export class WindowComponent implements DesktopWindow {
     if (rect === this.ownRect || !this.ready() || !rect) return;
     this.snapZone.set(null);
     this.restoreSize.set(null);
+    // A hidden desktop measures 0 × 0: take the rect as given; it is fitted when the desktop is shown.
+    if (this.desktop?.isHidden()) {
+      this.setRect(rect);
+      return;
+    }
     this.setRect(this.arrange(this.keepInBounds() ? clampRect(rect, this.bounds()) : rect));
   }
 
@@ -629,7 +636,7 @@ export class WindowComponent implements DesktopWindow {
    * fitted into free space if there is room, otherwise left where it is.
    */
   private arrange(rect: Rect): Rect {
-    if (!this.overlapDesktop() || this.isAway() || this.maximized()) return rect;
+    if (!this.overlapDesktop() || this.isAway() || this.maximized() || this.desktop?.isHidden()) return rect;
     const fitted = this.fit(rect);
     return fitted && !sameRect(fitted, rect) ? fitted : rect;
   }
