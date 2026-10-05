@@ -57,7 +57,7 @@
     <legend>Windows</legend>
     <div class="group-controls">
       <button type="button" class="btn btn-primary" (click)="addWindow()">Add window</button>
-      <button type="button" class="btn" [disabled]="addedWindows().length === 0" (click)="removeAddedWindows()">
+      <button type="button" class="btn" [disabled]="added.windows().length === 0" (click)="removeAddedWindows()">
         Remove added
       </button>
       <label class="switch">
@@ -155,19 +155,20 @@
       </div>
     </omni-window>
 
-    @for (window of addedWindows(); track window.id) {
+    @for (window of added.windows(); track window.key) {
       <omni-window
-        [header]="window.title"
-        [icon]="window.icon"
-        [x]="window.x"
-        [y]="window.y"
+        [header]="window.data.title"
+        [icon]="window.data.icon"
+        [x]="window.data.x"
+        [y]="window.data.y"
         [width]="320"
         [height]="220"
+        [persistKey]="window.key"
         (closed)="removeWindow(window)"
-        (snapped)="record($event ? window.title + ' snapped: ' + $event : window.title + ' unsnapped')"
+        (snapped)="record($event ? window.data.title + ' snapped: ' + $event : window.data.title + ' unsnapped')"
       >
-        <h2>{{ window.title }}</h2>
-        <p>Added for testing. Not saved across reloads; closing it removes it.</p>
+        <h2>{{ window.data.title }}</h2>
+        <p>Added at runtime and kept in a desktop session: it comes back after a reload. Closing it forgets it.</p>
       </omni-window>
     }
   </omni-desktop>

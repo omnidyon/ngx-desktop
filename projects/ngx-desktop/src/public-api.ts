@@ -16,6 +16,8 @@ export * from './lib/persistence/window-layout';
 export * from './lib/persistence/layout-storage';
 export * from './lib/persistence/indexed-db-layout-storage';
 export * from './lib/persistence/layout-storage.provider';
+export * from './lib/session/session-storage';
+export * from './lib/session/desktop-session';
 export * from './lib/directives/draggable.directive';
 export * from './lib/directives/window-slots.directive';
 export * from './lib/components/window/window.component';

@@ -120,6 +120,53 @@ bootstrapApplication(App, { providers: [provideDesktopLayoutStorage(new ApiLayou
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Persisting dynamic windows (sessions)</b></summary>
+
+`persistKey` restores where a window is, but windows your app creates at runtime (a "New document" button, say) also
+need to remember that they _exist_. A **desktop session** keeps that list for you: you open windows with your own data,
+render them from `session.windows()`, and they come back after a reload.
+
+```ts
+interface Doc {
+  title: string;
+}
+
+export class App {
+  readonly docs = injectDesktopSession<Doc>('documents'); // in an injection context
+
+  newDoc() {
+    this.docs.open({ title: 'Untitled' });
+  }
+}
+```
+
+```html
+<omni-desktop>
+  @for (doc of docs.windows(); track doc.key) {
+  <omni-window [header]="doc.data.title" [persistKey]="doc.key" (closed)="docs.close(doc.key)">…</omni-window>
+  }
+</omni-desktop>
+```
+
+| Member              | Meaning                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| `windows()`         | signal of `{ key, data }` for every window, in the order they were opened               |
+| `loaded()`          | signal: the saved windows have been restored                                            |
+| `open(data, key?)`  | adds a window and returns its key (a unique one is generated when you don't pass one)   |
+| `update(key, data)` | replaces a window's data                                                                |
+| `close(key)`        | removes a window **and forgets it**: it does not come back and its saved layout is gone |
+| `clear()`           | closes every window of the session                                                      |
+| `whenSaved()`       | resolves once pending changes are stored; await it before reloading or navigating away  |
+
+- Use the window's `key` as its `persistKey`, so its position, size and state are restored too.
+- `data` must be structured-cloneable: plain objects, arrays, strings, numbers, booleans, dates.
+- Sessions are stored in IndexedDB (database `omni-desktop`, store `sessions`), with the same in-memory fallback as
+  layouts. Use `provideDesktopSessionStorage(...)` to store them elsewhere; `InMemorySessionStorage` is exported for
+  tests.
+- Each session key should be used by one session at a time.
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Styling</b></summary>
 
 When installed, windows, dialogs and the dock come in a default style. You can restyle them by defining any of the

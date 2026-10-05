@@ -1,19 +1,21 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
   DESKTOP_LAYOUT_STORAGE,
   DesktopComponent,
   DesktopTheme,
   DialogComponent,
   DockPosition,
+  injectDesktopSession,
   Rect,
+  SessionWindow,
   WindowComponent,
   WindowFooterDirective,
   WindowHeaderDirective,
 } from '@omnidyon/ngx-desktop';
 
-/** A temporary window added with the "Add window" button. */
+/** A window added with the "Add window" button; kept in a desktop session so it survives reloads. */
 interface DemoWindow {
-  id: number;
+  number: number;
   title: string;
   icon?: string;
   x: number;
@@ -66,10 +68,10 @@ export class App {
   protected readonly allowOverlap = signal(true);
   protected readonly log = signal<string[]>([]);
   protected readonly notesRect = signal<Rect | null>(null);
-  protected readonly addedWindows = signal<DemoWindow[]>([]);
-
-  /** Numbers the added windows; the three built-in windows come first. */
-  private nextWindow = 4;
+  /** Added windows: which exist is saved by the session, where they are by each window's persistKey. */
+  protected readonly added = injectDesktopSession<DemoWindow>('demo-added-windows');
+  /** Numbers continue after the highest restored window; the three built-in windows come first. */
+  private readonly nextWindow = computed(() => Math.max(3, ...this.added.windows().map((w) => w.data.number)) + 1);
 
   protected setTheme(event: Event): void {
     this.theme.set((event.target as HTMLSelectElement).value as DesktopTheme);
@@ -84,31 +86,33 @@ export class App {
   }
 
   protected addWindow(): void {
-    const number = this.nextWindow++;
+    const number = this.nextWindow();
     const step = (number - 4) % CASCADE_LENGTH;
     const window: DemoWindow = {
-      id: number,
+      number,
       title: `Window ${number}`,
       icon: DEMO_ICONS[(number - 4) % DEMO_ICONS.length],
       x: 40 + step * CASCADE_STEP,
       y: 40 + step * CASCADE_STEP,
     };
-    this.addedWindows.update((windows) => [...windows, window]);
+    this.added.open(window);
     this.record(`${window.title} added`);
   }
 
-  protected removeWindow(window: DemoWindow): void {
-    this.addedWindows.update((windows) => windows.filter((w) => w.id !== window.id));
-    this.record(`${window.title} closed`);
+  protected removeWindow(window: SessionWindow<DemoWindow>): void {
+    this.added.close(window.key);
+    this.record(`${window.data.title} closed`);
   }
 
   protected removeAddedWindows(): void {
-    this.addedWindows.set([]);
+    this.added.clear();
     this.record('Added windows removed');
   }
 
   /** Forgets every saved window layout and reloads, so the windows start from their initial placement. */
   protected async resetLayout(): Promise<void> {
+    this.added.clear();
+    await this.added.whenSaved();
     await this.layoutStorage.clear();
     location.reload();
   }

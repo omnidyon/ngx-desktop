@@ -37,6 +37,7 @@ import { resizeRect } from '../../geometry/resize';
 import { detectZone, zoneRect } from '../../geometry/snap-zones';
 import { DesktopWindow } from '../../models/desktop-window';
 import { DesktopTheme, Rect, ResizeDirection, Size, SnapZone, WindowPosition } from '../../models/types';
+import { ForgottenLayouts } from '../../persistence/forgotten-layouts';
 import { DESKTOP_LAYOUT_STORAGE } from '../../persistence/layout-storage.provider';
 import { WindowLayout } from '../../persistence/window-layout';
 import { DesktopService } from '../../services/desktop.service';
@@ -112,6 +113,7 @@ export class WindowComponent implements DesktopWindow {
   private readonly document = inject(DOCUMENT);
   private readonly config = inject(DESKTOP_CONFIG);
   private readonly storage = inject(DESKTOP_LAYOUT_STORAGE);
+  private readonly forgotten = inject(ForgottenLayouts);
   private readonly desktop = inject(DesktopService, { optional: true });
 
   readonly id = uniqueId('omni-window-');
@@ -261,7 +263,7 @@ export class WindowComponent implements DesktopWindow {
     effect((onCleanup) => {
       const key = this.persistKey();
       const layout = this.currentLayout();
-      if (!key || !layout || !this.ready() || this.interacting()) return;
+      if (!key || !layout || !this.ready() || this.interacting() || this.forgotten.has(key)) return;
       this.pendingSave = { key, layout };
       const timer = setTimeout(() => this.flushSave(), LAYOUT_SAVE_DELAY);
       onCleanup(() => clearTimeout(timer));
@@ -319,11 +321,15 @@ export class WindowComponent implements DesktopWindow {
     }
   }
 
-  /** Deletes the layout saved under `persistKey`; the current window is not moved. */
+  /**
+   * Deletes the layout saved under `persistKey` and stops saving it; the current window is not moved.
+   * A new window with the same `persistKey` saves again.
+   */
   async forgetLayout(): Promise<void> {
     const key = this.persistKey();
     if (!key) return;
     this.pendingSave = null;
+    this.forgotten.forget(key);
     await this.storage.remove(key);
   }
 
@@ -453,6 +459,8 @@ export class WindowComponent implements DesktopWindow {
     const key = this.persistKey();
     let saved: WindowLayout | null = null;
     if (key) {
+      // A new window with this key saves again, even if an earlier one was forgotten.
+      this.forgotten.revive(key);
       try {
         saved = await this.storage.load(key);
       } catch (error) {
@@ -532,7 +540,8 @@ export class WindowComponent implements DesktopWindow {
   private flushSave(): void {
     const pending = this.pendingSave;
     this.pendingSave = null;
-    if (!pending) return;
+    // A forgotten layout (closed through a session, or forgetLayout()) must not be written back.
+    if (!pending || this.forgotten.has(pending.key)) return;
     this.storage.save(pending.key, pending.layout).catch((error: unknown) => {
       console.warn(`[ngx-desktop] Could not save the layout "${pending.key}".`, error);
     });
