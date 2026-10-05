@@ -257,6 +257,9 @@ Keyboard moves and resizes follow the same rules as the mouse: bounds, minimum a
 bar and a short announcement after each change ("Notes moved to 120, 80"); both are translatable (see _Labels and
 translation_).
 
+The dock is a single tab stop (the last tab you used, or the focused window's). Arrow keys move between its tabs,
+wrapping around; Home / End go to the first / last tab; Enter or Space restores or raises that window.
+
 </details>
 
 <details><summary><b style="font-size: 20px;">Labels and translation</b></summary>

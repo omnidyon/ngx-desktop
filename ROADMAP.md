@@ -14,7 +14,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 
 - [x] 5. Keyboard focus brings a window to the front
 - [x] 6. Keyboard move / resize / snap on the focused title bar (arrows, Shift, Ctrl, Alt; announced)
-- [ ] 7. Dock arrow-key navigation
+- [x] 7. Dock arrow-key navigation (single tab stop, arrows wrap, Home / End)
 
 ## C. Performance
 

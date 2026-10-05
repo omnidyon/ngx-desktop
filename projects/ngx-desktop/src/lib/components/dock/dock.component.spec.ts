@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { DesktopWindow } from '../../models/desktop-window';
 import { Rect } from '../../models/types';
@@ -74,5 +74,56 @@ describe('DockComponent', () => {
   it('uses the dock z-index from the config', async () => {
     const element = await render();
     expect(element.style.zIndex).toBe('1500');
+  });
+
+  describe('arrow keys', () => {
+    let element: HTMLElement;
+    const tabs = () => Array.from(element.querySelectorAll<HTMLButtonElement>('.omni-dock-tab'));
+    const tabStops = () => tabs().map((tab) => tab.tabIndex);
+    const focused = () => document.activeElement?.getAttribute('aria-label');
+
+    async function press(key: string): Promise<KeyboardEvent> {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+      document.activeElement!.dispatchEvent(event);
+      await TestBed.inject(ApplicationRef).whenStable();
+      return event;
+    }
+
+    beforeEach(async () => {
+      service.register(fakeWindow('a', 'Alpha'));
+      service.register(fakeWindow('b', 'Beta'));
+      service.register(fakeWindow('c', 'Gamma'));
+      service.focus('b');
+      element = await render();
+    });
+
+    it('makes the dock a single tab stop, at the focused window', () => {
+      expect(tabStops()).toEqual([-1, 0, -1]);
+    });
+
+    it('moves between tabs, wrapping around, and keeps the tab stop on the last one focused', async () => {
+      tabs()[1].focus();
+      expect((await press('ArrowRight')).defaultPrevented).toBe(true);
+      expect(focused()).toBe('Gamma');
+      await press('ArrowRight');
+      expect(focused()).toBe('Alpha');
+      await press('ArrowLeft');
+      expect(focused()).toBe('Gamma');
+      expect(tabStops()).toEqual([-1, -1, 0]);
+    });
+
+    it('goes to the first and last tab with Home and End', async () => {
+      tabs()[1].focus();
+      await press('End');
+      expect(focused()).toBe('Gamma');
+      await press('Home');
+      expect(focused()).toBe('Alpha');
+    });
+
+    it('leaves other keys alone', async () => {
+      tabs()[1].focus();
+      expect((await press('Enter')).defaultPrevented).toBe(false);
+      expect(focused()).toBe('Beta');
+    });
   });
 });
