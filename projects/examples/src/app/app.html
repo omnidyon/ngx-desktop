@@ -1,48 +1,95 @@
 <header class="toolbar">
-  <h1>ngx-desktop</h1>
+  <h1 class="brand">ngx-desktop</h1>
 
-  <label>
-    Theme
-    <select [value]="theme()" (change)="setTheme($event)">
-      @for (option of themes; track option) {
-        <option [value]="option">{{ option }}</option>
-      }
-    </select>
-  </label>
+  <fieldset class="group">
+    <legend>Appearance</legend>
+    <div class="group-controls">
+      <label class="field">
+        <span>Theme</span>
+        <select class="control" [value]="theme()" (change)="setTheme($event)">
+          @for (option of themes; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span>Dock</span>
+        <select class="control" [value]="dock()" (change)="setDock($event)">
+          @for (option of docks; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </fieldset>
 
-  <label>
-    Dock
-    <select [value]="dock()" (change)="setDock($event)">
-      @for (option of docks; track option) {
-        <option [value]="option">{{ option }}</option>
-      }
-    </select>
-  </label>
+  <fieldset class="group">
+    <legend>Snapping</legend>
+    <div class="group-controls">
+      <label class="switch">
+        <input type="checkbox" role="switch" [checked]="snapToZones()" (change)="snapToZones.set(!snapToZones())" />
+        <span>Zones</span>
+      </label>
+      <label class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          [checked]="snapToWindows()"
+          (change)="snapToWindows.set(!snapToWindows())"
+        />
+        <span>Windows</span>
+      </label>
+      <label class="field">
+        <span>Padding</span>
+        <span class="control number">
+          <input type="number" min="0" max="64" [value]="snapPadding()" (input)="setSnapPadding($event)" />
+          <span class="unit">px</span>
+        </span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" role="switch" [checked]="allowOverlap()" (change)="allowOverlap.set(!allowOverlap())" />
+        <span>Overlap</span>
+      </label>
+    </div>
+  </fieldset>
 
-  <label
-    ><input type="checkbox" [checked]="snapToZones()" (change)="snapToZones.set(!snapToZones())" /> Snap to zones</label
-  >
-  <label
-    ><input type="checkbox" [checked]="snapToWindows()" (change)="snapToWindows.set(!snapToWindows())" /> Snap to
-    windows</label
-  >
-  <label>
-    Snap padding
-    <input type="number" min="0" max="64" class="padding" [value]="snapPadding()" (input)="setSnapPadding($event)" />
-  </label>
-  <label
-    ><input type="checkbox" [checked]="allowOverlap()" (change)="allowOverlap.set(!allowOverlap())" /> Allow
-    overlap</label
-  >
-  <label><input type="checkbox" [checked]="modal()" (change)="modal.set(!modal())" /> Modal dialog</label>
-  <button type="button" (click)="dialogOpen.set(true)">Open dialog</button>
-  <button type="button" (click)="standaloneOpen.set(!standaloneOpen())">Toggle standalone window</button>
-  <button type="button" [disabled]="notesOpen()" (click)="notesOpen.set(true)">Reopen "Notes"</button>
-  <button type="button" (click)="resetLayout()">Reset layout</button>
+  <fieldset class="group">
+    <legend>Windows</legend>
+    <div class="group-controls">
+      <button type="button" class="btn btn-primary" (click)="addWindow()">Add window</button>
+      <button type="button" class="btn" [disabled]="addedWindows().length === 0" (click)="removeAddedWindows()">
+        Remove added
+      </button>
+      <label class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          [checked]="standaloneOpen()"
+          (change)="standaloneOpen.set(!standaloneOpen())"
+        />
+        <span>Standalone</span>
+      </label>
+      <button type="button" class="btn" [disabled]="notesOpen()" (click)="notesOpen.set(true)">Reopen "Notes"</button>
+      <button type="button" class="btn" (click)="resetLayout()">Reset layout</button>
+    </div>
+  </fieldset>
+
+  <fieldset class="group">
+    <legend>Dialog</legend>
+    <div class="group-controls">
+      <label class="switch">
+        <input type="checkbox" role="switch" [checked]="modal()" (change)="modal.set(!modal())" />
+        <span>Modal</span>
+      </label>
+      <button type="button" class="btn" (click)="dialogOpen.set(true)">Open dialog</button>
+    </div>
+  </fieldset>
 
   <ol class="log" aria-label="Event log">
     @for (entry of log(); track $index) {
       <li>{{ entry }}</li>
+    } @empty {
+      <li class="log-empty">Events appear here</li>
     }
   </ol>
 </header>
@@ -104,9 +151,25 @@
       }
       <p>Angular, Nest and Notes remember their position, size and state across reloads.</p>
       <div omniWindowFooter>
-        <button type="button" (click)="record('Notes: saved')">Save</button>
+        <button type="button" class="btn" (click)="record('Notes: saved')">Save</button>
       </div>
     </omni-window>
+
+    @for (window of addedWindows(); track window.id) {
+      <omni-window
+        [header]="window.title"
+        [icon]="window.icon"
+        [x]="window.x"
+        [y]="window.y"
+        [width]="320"
+        [height]="220"
+        (closed)="removeWindow(window)"
+        (snapped)="record($event ? window.title + ' snapped: ' + $event : window.title + ' unsnapped')"
+      >
+        <h2>{{ window.title }}</h2>
+        <p>Added for testing. Not saved across reloads; closing it removes it.</p>
+      </omni-window>
+    }
   </omni-desktop>
 </main>
 
@@ -132,7 +195,9 @@
 >
   <p>Close with the button, Escape, or the footer buttons.</p>
   <div omniWindowFooter>
-    <button type="button" (click)="dialogOpen.set(false)">Cancel</button>
-    <button type="button" (click)="record('Dialog confirmed'); dialogOpen.set(false)">Confirm</button>
+    <button type="button" class="btn" (click)="dialogOpen.set(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="record('Dialog confirmed'); dialogOpen.set(false)">
+      Confirm
+    </button>
   </div>
 </omni-dialog>
