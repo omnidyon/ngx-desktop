@@ -11,6 +11,11 @@
  */
 export * from './lib/models/types';
 export * from './lib/config/desktop-config';
+export type { Length } from './lib/geometry/length';
+export * from './lib/persistence/window-layout';
+export * from './lib/persistence/layout-storage';
+export * from './lib/persistence/indexed-db-layout-storage';
+export * from './lib/persistence/layout-storage.provider';
 export * from './lib/directives/draggable.directive';
 export * from './lib/directives/window-slots.directive';
 export * from './lib/components/window/window.component';

@@ -1,9 +1,11 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import {
+  DESKTOP_LAYOUT_STORAGE,
   DesktopComponent,
   DesktopTheme,
   DialogComponent,
   DockPosition,
+  Rect,
   WindowComponent,
   WindowFooterDirective,
   WindowHeaderDirective,
@@ -17,6 +19,8 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
+  private readonly layoutStorage = inject(DESKTOP_LAYOUT_STORAGE);
+
   protected readonly themes: DesktopTheme[] = [
     'default',
     'aqua',
@@ -38,6 +42,7 @@ export class App {
   protected readonly snapToWindows = signal(true);
   protected readonly snapPadding = signal(8);
   protected readonly log = signal<string[]>([]);
+  protected readonly notesRect = signal<Rect | null>(null);
 
   protected setTheme(event: Event): void {
     this.theme.set((event.target as HTMLSelectElement).value as DesktopTheme);
@@ -49,6 +54,12 @@ export class App {
 
   protected setDock(event: Event): void {
     this.dock.set((event.target as HTMLSelectElement).value as DockPosition);
+  }
+
+  /** Forgets every saved window layout and reloads, so the windows start from their initial placement. */
+  protected async resetLayout(): Promise<void> {
+    await this.layoutStorage.clear();
+    location.reload();
   }
 
   protected record(entry: string): void {

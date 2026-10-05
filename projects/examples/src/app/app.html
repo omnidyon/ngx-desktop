@@ -34,6 +34,7 @@
   <button type="button" (click)="dialogOpen.set(true)">Open dialog</button>
   <button type="button" (click)="standaloneOpen.set(!standaloneOpen())">Toggle standalone window</button>
   <button type="button" [disabled]="notesOpen()" (click)="notesOpen.set(true)">Reopen "Notes"</button>
+  <button type="button" (click)="resetLayout()">Reset layout</button>
 
   <ol class="log" aria-label="Event log">
     @for (entry of log(); track $index) {
@@ -54,6 +55,7 @@
       header="Angular"
       icon="icons/angular.svg"
       position="topleft"
+      persistKey="demo-angular"
       (dragEnd)="record('Angular dragged to ' + $event.x + ', ' + $event.y)"
       (resizeEnd)="record('Angular resized to ' + $event.width + ' × ' + $event.height)"
       (snapped)="record($event ? 'Angular snapped: ' + $event : 'Angular unsnapped')"
@@ -66,8 +68,18 @@
       </p>
     </omni-window>
 
-    <omni-window header="Nest" icon="icons/nest.svg" position="right" theme="neo-tokyo" [width]="360" [height]="240">
+    <omni-window
+      header="Nest"
+      icon="icons/nest.svg"
+      x="62%"
+      y="40"
+      theme="neo-tokyo"
+      [width]="360"
+      [height]="240"
+      persistKey="demo-nest"
+    >
       <p>This window always uses the <code>neo-tokyo</code> theme, whatever the desktop theme is.</p>
+      <p>It starts at <code>x="62%" y="40"</code>, 360 × 240.</p>
     </omni-window>
 
     <omni-window
@@ -75,11 +87,17 @@
       position="bottom"
       [minWidth]="220"
       [minHeight]="140"
+      persistKey="demo-notes"
+      [(rect)]="notesRect"
       [(visible)]="notesOpen"
       (closed)="record('Notes closed')"
     >
       <span omniWindowHeader>📝 <b>Notes</b> (custom header)</span>
       <p>No icon, so the dock tab shows the header text. Minimum size is 220 × 140.</p>
+      @if (notesRect(); as r) {
+        <p class="rect">[(rect)]: x {{ r.x }}, y {{ r.y }}, {{ r.width }} × {{ r.height }}</p>
+      }
+      <p>Angular, Nest and Notes remember their position, size and state across reloads.</p>
       <div omniWindowFooter>
         <button type="button" (click)="record('Notes: saved')">Save</button>
       </div>

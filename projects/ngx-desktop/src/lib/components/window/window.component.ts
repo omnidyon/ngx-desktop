@@ -19,22 +19,25 @@ import {
   ElementRef,
   inject,
   input,
-  untracked,
   model,
   numberAttribute,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
-import { placeRect } from '../../geometry/placement';
+import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
+import { placeRect } from '../../geometry/placement';
 import { clampRect, moveRect } from '../../geometry/rect';
 import { resizeRect } from '../../geometry/resize';
 import { detectZone, zoneRect } from '../../geometry/snap-zones';
 import { DesktopWindow } from '../../models/desktop-window';
 import { DesktopTheme, Rect, ResizeDirection, Size, SnapZone, WindowPosition } from '../../models/types';
+import { DESKTOP_LAYOUT_STORAGE } from '../../persistence/layout-storage.provider';
+import { WindowLayout } from '../../persistence/window-layout';
 import { DesktopService } from '../../services/desktop.service';
 import { blockBodyScroll, unblockBodyScroll } from '../../utils/body-scroll';
 import { uniqueId } from '../../utils/unique-id';
@@ -48,6 +51,8 @@ import { MoveIconComponent } from '../icons/move-icon/move-icon.component';
 export const DEFAULT_MIN_WIDTH = 130;
 /** @internal */
 export const DEFAULT_MIN_HEIGHT = 65;
+/** @internal How long a window waits after its last change before saving its layout. */
+export const LAYOUT_SAVE_DELAY = 300;
 
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 
@@ -60,8 +65,14 @@ let standaloneTop = 0;
  * A draggable, resizable window. Inside an `<omni-desktop>` it is positioned within the desktop,
  * listed in its dock and stacked with the other windows; on its own it is positioned within the viewport.
  *
+ * Initial placement, first match wins:
+ * 1. the layout saved under `persistKey`
+ * 2. `[rect]`
+ * 3. `x` / `y` / `width` / `height` (px or %), with `position` used for an axis without `x` / `y`
+ * 4. `position` and the `--omni-window-width` / `--omni-window-height` size
+ *
  * @usageNotes
- * <omni-window header="Notes" icon="assets/notes.svg" position="center" theme="aqua">
+ * <omni-window header="Notes" icon="assets/notes.svg" x="25%" y="40" width="480" persistKey="notes">
  *   <span omniWindowHeader>Custom title</span>      -- optional, replaces icon + header
  *   Window content
  *   <div omniWindowFooter>Footer content</div>    -- optional
@@ -99,6 +110,7 @@ export class WindowComponent implements DesktopWindow {
   private readonly element: HTMLElement = inject(ElementRef).nativeElement;
   private readonly document = inject(DOCUMENT);
   private readonly config = inject(DESKTOP_CONFIG);
+  private readonly storage = inject(DESKTOP_LAYOUT_STORAGE);
   private readonly desktop = inject(DesktopService, { optional: true });
 
   readonly id = uniqueId('omni-window-');
@@ -107,14 +119,18 @@ export class WindowComponent implements DesktopWindow {
   readonly header = input('');
   /** Image URL shown in the header and used as the dock tab. */
   readonly icon = input<string>();
-  /** Initial placement. */
+  /** Initial placement; `x` / `y` override it per axis. */
   readonly position = input<WindowPosition>('center');
+  /** Initial left edge: px (`120`, `'120px'`) or a percentage of the desktop/viewport width (`'25%'`). */
+  readonly x = input<Length>();
+  /** Initial top edge: px or a percentage of the desktop/viewport height. */
+  readonly y = input<Length>();
+  /** Initial width: px or percentage. Defaults to `--omni-window-width`. */
+  readonly width = input<Length>();
+  /** Initial height: px or percentage. Defaults to `--omni-window-height`. */
+  readonly height = input<Length>();
   /** Theme preset; when unset the window inherits the desktop's (or the default) theme. */
   readonly theme = input<DesktopTheme>();
-  /** Initial width in px. Defaults to `--omni-window-width`. */
-  readonly width = input<number | undefined, unknown>(undefined, { transform: optionalNumber });
-  /** Initial height in px. Defaults to `--omni-window-height`. */
-  readonly height = input<number | undefined, unknown>(undefined, { transform: optionalNumber });
   readonly minWidth = input(DEFAULT_MIN_WIDTH, { transform: numberAttribute });
   readonly minHeight = input(DEFAULT_MIN_HEIGHT, { transform: numberAttribute });
   readonly closable = input(true, { transform: booleanAttribute });
@@ -127,12 +143,23 @@ export class WindowComponent implements DesktopWindow {
   readonly keepInBounds = input(true, { transform: booleanAttribute });
   /** Whether this window snaps to zones and other windows (only inside a desktop with snapping enabled). */
   readonly snappable = input(true, { transform: booleanAttribute });
+  /**
+   * Saves the window's position, size, snapped zone and minimized/maximized/visible state under
+   * this key (IndexedDB by default, see `provideDesktopLayoutStorage`) and restores it on load.
+   * Keys must be unique per window.
+   */
+  readonly persistKey = input<string>();
 
   /** Whether the window is shown. Set to `false` by the close button. */
   readonly visible = model(true);
   /** Minimized: moved to the dock inside a desktop, collapsed to a small title bar otherwise. */
   readonly minimized = model(false);
   readonly maximized = model(false);
+  /**
+   * Current position and size in px, relative to the desktop (or viewport); `null` until placed.
+   * Bind `[(rect)]` to read it live or to move/resize the window from code.
+   */
+  readonly rect = model<Rect | null>(null);
 
   /** Emitted when the close button is used. */
   readonly closed = output<void>();
@@ -143,25 +170,30 @@ export class WindowComponent implements DesktopWindow {
   /** Emitted when the window is snapped into a zone, and with `null` when it is dragged out of it. */
   readonly snapped = output<SnapZone | null>();
 
-  /** Current position and size, relative to the desktop (or viewport). `null` until measured. */
-  readonly rect = signal<Rect | null>(null);
-
   protected readonly resizeDirections = RESIZE_DIRECTIONS;
   protected readonly fullScreen = signal(false);
   protected readonly interacting = signal(false);
   protected readonly customHeader = contentChild(WindowHeaderDirective);
   protected readonly customFooter = contentChild(WindowFooterDirective);
 
+  /** Placed (and, with a `persistKey`, restored); the window stays hidden until then. */
+  private readonly ready = signal(false);
   private readonly standaloneZ = signal(this.config.zIndex.window);
+  /** The zone the window is snapped into, kept so it can re-fit when the desktop is resized. */
+  private readonly snapZone = signal<SnapZone | null>(null);
+  /** Size before the window was snapped into a zone; restored when it is dragged out again. */
+  private readonly restoreSize = signal<Size | null>(null);
+
   private interactionStart: Rect | null = null;
   /** The zone under the pointer during the current drag. */
   private dragZone: SnapZone | null = null;
-  /** The zone the window is snapped into, kept so it can re-fit when the desktop is resized. */
-  private snapZone: SnapZone | null = null;
-  /** Size before the window was snapped into a zone; restored when it is dragged out again. */
-  private restoreSize: Size | null = null;
   /** A snapped window is only un-snapped once it actually moves, not on a plain click. */
   private unsnapPending = false;
+  /** The last rect this component wrote; anything else in `rect` was set from outside. */
+  private ownRect: Rect | null = null;
+  /** A save that is waiting for the debounce delay; written immediately if the window is destroyed. */
+  private pendingSave: { key: string; layout: WindowLayout } | null = null;
+  private destroyed = false;
 
   /** Collapsed to a title bar (minimized while not inside a desktop). */
   protected readonly collapsed = computed(() => this.minimized() && !this.desktop);
@@ -177,7 +209,7 @@ export class WindowComponent implements DesktopWindow {
     return {
       'omni-window': true,
       'omni-window-standalone': !this.desktop,
-      'omni-window-measuring': !this.rect(),
+      'omni-window-measuring': !this.ready(),
       'omni-window-maximized': this.maximized(),
       'omni-window-collapsed': this.collapsed(),
       'omni-window-away': this.isAway(),
@@ -199,7 +231,13 @@ export class WindowComponent implements DesktopWindow {
   constructor() {
     this.desktop?.register(this);
 
-    afterNextRender(() => this.initRect());
+    afterNextRender(() => void this.initialize());
+
+    // A rect set from outside (`[(rect)]`) is kept inside the bounds and ends any snapped state.
+    effect(() => {
+      const rect = this.rect();
+      untracked(() => this.onExternalRect(rect));
+    });
 
     // Inside a desktop: follow changes of the desktop's size.
     effect(() => {
@@ -216,7 +254,19 @@ export class WindowComponent implements DesktopWindow {
       onCleanup(() => unblockBodyScroll(this.document, this.id));
     });
 
+    // Save the layout a moment after the last change (never in the middle of a drag or resize).
+    effect((onCleanup) => {
+      const key = this.persistKey();
+      const layout = this.currentLayout();
+      if (!key || !layout || !this.ready() || this.interacting()) return;
+      this.pendingSave = { key, layout };
+      const timer = setTimeout(() => this.flushSave(), LAYOUT_SAVE_DELAY);
+      onCleanup(() => clearTimeout(timer));
+    });
+
     inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
+      this.flushSave();
       this.desktop?.unregister(this.id);
       unblockBodyScroll(this.document, this.id);
     });
@@ -263,6 +313,14 @@ export class WindowComponent implements DesktopWindow {
     }
   }
 
+  /** Deletes the layout saved under `persistKey`; the current window is not moved. */
+  async forgetLayout(): Promise<void> {
+    const key = this.persistKey();
+    if (!key) return;
+    this.pendingSave = null;
+    await this.storage.remove(key);
+  }
+
   protected onHeaderDoubleClick(): void {
     if (!this.collapsed()) this.toggleMaximize();
   }
@@ -270,7 +328,7 @@ export class WindowComponent implements DesktopWindow {
   protected onDragStart(): void {
     this.interactionStart = this.rect();
     this.interacting.set(!!this.interactionStart);
-    this.unsnapPending = !!this.restoreSize;
+    this.unsnapPending = !!this.restoreSize();
   }
 
   protected onDragMove(event: DragPointerEvent): void {
@@ -294,7 +352,7 @@ export class WindowComponent implements DesktopWindow {
       desktop.showSnapPreview(preview ? { rect: preview, zIndex: this.zIndex() } : null);
     }
 
-    this.rect.set(next);
+    this.setRect(next);
   }
 
   protected onDragEnd(): void {
@@ -305,15 +363,14 @@ export class WindowComponent implements DesktopWindow {
     this.desktop?.showSnapPreview(null);
 
     if (zone && start) {
-      // Remember the size to go back to when the window is dragged out of the zone again.
-      this.restoreSize = { width: start.width, height: start.height };
       if (zone === 'maximize') {
-        this.restoreSize = null;
-        this.rect.set(start);
+        this.setRect(start);
         this.maximized.set(true);
       } else {
-        this.snapZone = zone;
-        this.rect.set(zoneRect(zone, this.bounds(), this.snapPadding()));
+        // Remember the size to go back to when the window is dragged out of the zone again.
+        this.restoreSize.set({ width: start.width, height: start.height });
+        this.snapZone.set(zone);
+        this.setRect(zoneRect(zone, this.bounds(), this.snapPadding()));
       }
       this.snapped.emit(zone);
     }
@@ -322,8 +379,8 @@ export class WindowComponent implements DesktopWindow {
 
   protected onResizeStart(): void {
     // A snapped window that is resized by hand keeps its new size.
-    this.restoreSize = null;
-    this.snapZone = null;
+    this.restoreSize.set(null);
+    this.snapZone.set(null);
     this.interactionStart = this.rect();
     this.interacting.set(!!this.interactionStart);
     if (this.interactionStart) this.resizeStart.emit(this.interactionStart);
@@ -348,7 +405,7 @@ export class WindowComponent implements DesktopWindow {
       const { snapThreshold, snapPadding } = desktop.settings;
       next = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding());
     }
-    this.rect.set(next);
+    this.setRect(next);
   }
 
   protected onResizeEnd(): void {
@@ -367,15 +424,111 @@ export class WindowComponent implements DesktopWindow {
     this.fullScreenChange.emit(fullScreen);
   }
 
+  /** Places the window: from its saved layout when there is one, otherwise from its inputs. */
+  private async initialize(): Promise<void> {
+    const key = this.persistKey();
+    let saved: WindowLayout | null = null;
+    if (key) {
+      try {
+        saved = await this.storage.load(key);
+      } catch (error) {
+        console.warn(`[ngx-desktop] Could not load the layout "${key}"; using the initial placement.`, error);
+      }
+    }
+    if (this.destroyed) return;
+
+    if (saved?.version === 1) {
+      this.applyLayout(saved);
+    } else {
+      this.setRect(this.initialRect());
+    }
+    this.ready.set(true);
+  }
+
+  /** The rect from `[rect]`, or else from `x`/`y`/`width`/`height`/`position`. */
+  private initialRect(): Rect {
+    const bounds = this.bounds();
+    const given = this.rect();
+    if (given) return this.keepInBounds() ? clampRect(given, bounds) : given;
+
+    const size = {
+      width: Math.max(resolveLength(this.width(), bounds.width) ?? this.element.offsetWidth, this.minWidth()),
+      height: Math.max(resolveLength(this.height(), bounds.height) ?? this.element.offsetHeight, this.minHeight()),
+    };
+    const placed = placeRect(this.position(), size, bounds);
+    const x = resolveLength(this.x(), bounds.width);
+    const y = resolveLength(this.y(), bounds.height);
+    const rect = {
+      ...placed,
+      x: x === undefined ? placed.x : bounds.x + x,
+      y: y === undefined ? placed.y : bounds.y + y,
+    };
+    return this.keepInBounds() ? clampRect(rect, bounds) : rect;
+  }
+
+  private applyLayout(layout: WindowLayout): void {
+    const bounds = this.bounds();
+    // Zones only exist inside a desktop; re-fit them to the desktop's current size.
+    const zone = this.desktop ? layout.zone : null;
+    this.snapZone.set(zone);
+    this.restoreSize.set(zone ? layout.restoreSize : null);
+    if (zone) {
+      this.setRect(zoneRect(zone, bounds, this.snapPadding()));
+    } else {
+      this.setRect(this.keepInBounds() ? clampRect(layout.rect, bounds) : layout.rect);
+    }
+    this.visible.set(layout.visible);
+    this.minimized.set(layout.minimized);
+    this.maximized.set(layout.maximized);
+  }
+
+  private currentLayout(): WindowLayout | null {
+    const rect = this.rect();
+    if (!rect) return null;
+    return {
+      version: 1,
+      rect,
+      zone: this.snapZone(),
+      restoreSize: this.restoreSize(),
+      minimized: this.minimized(),
+      maximized: this.maximized(),
+      visible: this.visible(),
+    };
+  }
+
+  private flushSave(): void {
+    const pending = this.pendingSave;
+    this.pendingSave = null;
+    if (!pending) return;
+    this.storage.save(pending.key, pending.layout).catch((error: unknown) => {
+      console.warn(`[ngx-desktop] Could not save the layout "${pending.key}".`, error);
+    });
+  }
+
+  /** Writes the rect from inside the component (so it is not mistaken for an outside change). */
+  private setRect(rect: Rect): void {
+    this.ownRect = rect;
+    this.rect.set(rect);
+  }
+
+  private onExternalRect(rect: Rect | null): void {
+    // Before the window is placed, a given rect is picked up by initialRect().
+    if (rect === this.ownRect || !this.ready() || !rect) return;
+    this.snapZone.set(null);
+    this.restoreSize.set(null);
+    this.setRect(this.keepInBounds() ? clampRect(rect, this.bounds()) : rect);
+  }
+
   /** Keeps a snapped window in its zone and other windows inside the bounds after a resize of the bounds. */
   private fitToBounds(): void {
     const rect = this.rect();
-    if (!rect || this.interactionStart) return;
+    if (!rect || !this.ready() || this.interactionStart) return;
     const bounds = this.bounds();
-    if (this.snapZone) {
-      this.rect.set(zoneRect(this.snapZone, bounds, this.snapPadding()));
+    const zone = this.snapZone();
+    if (zone) {
+      this.setRect(zoneRect(zone, bounds, this.snapPadding()));
     } else if (this.keepInBounds()) {
-      this.rect.set(clampRect(rect, bounds));
+      this.setRect(clampRect(rect, bounds));
     }
   }
 
@@ -395,10 +548,10 @@ export class WindowComponent implements DesktopWindow {
    */
   private unsnap(event: DragPointerEvent): void {
     const start = this.interactionStart;
-    const size = this.restoreSize;
+    const size = this.restoreSize();
     this.unsnapPending = false;
-    this.restoreSize = null;
-    this.snapZone = null;
+    this.restoreSize.set(null);
+    this.snapZone.set(null);
     if (!start || !size || !this.desktop) return;
 
     const pointer = this.desktop.toLocal(event.startX, event.startY);
@@ -426,14 +579,6 @@ export class WindowComponent implements DesktopWindow {
     };
   }
 
-  private initRect(): void {
-    const size = {
-      width: Math.max(this.width() ?? this.element.offsetWidth, this.minWidth()),
-      height: Math.max(this.height() ?? this.element.offsetHeight, this.minHeight()),
-    };
-    this.rect.set(placeRect(this.position(), size, this.bounds()));
-  }
-
   private finishInteraction(emitter: { emit(value: Rect): void }): void {
     const rect = this.rect();
     const started = !!this.interactionStart;
@@ -446,8 +591,4 @@ export class WindowComponent implements DesktopWindow {
     const rect = this.rect();
     return rect && !this.maximized() && !this.collapsed() ? rect[dimension] : null;
   }
-}
-
-function optionalNumber(value: unknown): number | undefined {
-  return value === undefined || value === null || value === '' ? undefined : numberAttribute(value);
 }
