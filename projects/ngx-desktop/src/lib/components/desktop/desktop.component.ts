@@ -38,6 +38,10 @@ import { DockComponent } from '../dock/dock.component';
  * - **Padding** (`snapPadding`): gap in px kept around and between zone-snapped windows,
  *   between windows lined up side by side and between windows and the desktop edges.
  *
+ * Overlap (`allowOverlap`, default `true`): when `false`, a window that is moved, resized, snapped,
+ * opened or restored onto another one adjusts to fit beside it (keeping `snapPadding` as the gap);
+ * the other windows never move. Maximize and full screen are exempt.
+ *
  * @usageNotes
  * <omni-desktop theme="neo-tokyo" dock="bottom" [snapThreshold]="20">
  *   <omni-window header="Win 1" position="topleft">...</omni-window>
@@ -71,6 +75,8 @@ export class DesktopComponent {
   readonly snapThreshold = input(DEFAULT_SNAP_THRESHOLD, { transform: numberAttribute });
   /** Gap in px kept around and between snapped windows. */
   readonly snapPadding = input(0, { transform: numberAttribute });
+  /** When `false`, windows are kept from overlapping: the window being placed adjusts to fit. */
+  readonly allowOverlap = input(true, { transform: booleanAttribute });
 
   protected readonly dockPosition = computed(() => {
     const dock = this.dock();
@@ -90,6 +96,7 @@ export class DesktopComponent {
       snapToWindows: this.snapToWindows,
       snapThreshold: this.snapThreshold,
       snapPadding: this.snapPadding,
+      allowOverlap: this.allowOverlap,
     };
 
     // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).

@@ -21,6 +21,7 @@ export interface DesktopSettings {
   snapToWindows: Signal<boolean>;
   snapThreshold: Signal<number>;
   snapPadding: Signal<number>;
+  allowOverlap: Signal<boolean>;
 }
 
 /** @internal */
@@ -56,6 +57,7 @@ export class DesktopService {
     snapToWindows: signal(true),
     snapThreshold: signal(DEFAULT_SNAP_THRESHOLD),
     snapPadding: signal(0),
+    allowOverlap: signal(true),
   };
 
   readonly windows = this._windows.asReadonly();

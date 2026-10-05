@@ -2,7 +2,7 @@
 
 A desktop-style window manager for Angular: draggable, resizable windows with snap-in-place, optional no-overlap layout, a dock and dialogs. Themeable via CSS variables.
 
-> Work in progress. Full documentation (usage, inputs/outputs, overlap) will be added before the first release.
+> Work in progress. Full documentation (usage, inputs/outputs) will be added before the first release.
 
 <details><summary><b style="font-size: 20px;">Snapping</b></summary>
 
@@ -27,6 +27,31 @@ A single window can opt out with `[snappable]="false"`; `(snapped)` emits the zo
 <omni-desktop [snapPadding]="8">
   <omni-window header="Editor" />
   <omni-window header="Preview" />
+</omni-desktop>
+```
+
+</details>
+
+<details><summary><b style="font-size: 20px;">Overlap</b></summary>
+
+Set `[allowOverlap]="false"` on `<omni-desktop>` to keep windows from overlapping. The window you move, resize, snap,
+open or restore adjusts; the other windows never move:
+
+- **Dragging** onto another window: a preview shows where it will land (flush beside the windows it would overlap, or
+  the nearest free spot); it goes there on release. Without room it goes back to where the drag started.
+- **Snapping** into a zone that is partly taken: the window is placed beside the windows in the way, or shrunk into the
+  free part (never below `minWidth` / `minHeight`).
+- **Resizing** stops the edge at the next window.
+- **Opening, restoring from the dock, a saved layout and `[rect]`** are fitted the same way when there is room.
+- **Maximize and full screen** are exempt.
+
+`snapPadding` is kept as the gap between windows. Windows that already overlapped before the setting was turned off
+are left as they are.
+
+```html
+<omni-desktop [allowOverlap]="false" [snapPadding]="8">
+  <omni-window header="One" />
+  <omni-window header="Two" />
 </omni-desktop>
 ```
 

@@ -30,6 +30,10 @@
     Snap padding
     <input type="number" min="0" max="64" class="padding" [value]="snapPadding()" (input)="setSnapPadding($event)" />
   </label>
+  <label
+    ><input type="checkbox" [checked]="allowOverlap()" (change)="allowOverlap.set(!allowOverlap())" /> Allow
+    overlap</label
+  >
   <label><input type="checkbox" [checked]="modal()" (change)="modal.set(!modal())" /> Modal dialog</label>
   <button type="button" (click)="dialogOpen.set(true)">Open dialog</button>
   <button type="button" (click)="standaloneOpen.set(!standaloneOpen())">Toggle standalone window</button>
@@ -50,6 +54,7 @@
     [snapToZones]="snapToZones()"
     [snapToWindows]="snapToWindows()"
     [snapPadding]="snapPadding()"
+    [allowOverlap]="allowOverlap()"
   >
     <omni-window
       header="Angular"

@@ -28,6 +28,7 @@ import {
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
+import { fitWithoutOverlap, limitResize } from '../../geometry/fit';
 import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
 import { placeRect } from '../../geometry/placement';
@@ -187,6 +188,8 @@ export class WindowComponent implements DesktopWindow {
   private interactionStart: Rect | null = null;
   /** The zone under the pointer during the current drag. */
   private dragZone: SnapZone | null = null;
+  /** Without overlap: where the dragged window will land (`null`: nowhere, it goes back). */
+  private dragLanding: Rect | null = null;
   /** A snapped window is only un-snapped once it actually moves, not on a plain click. */
   private unsnapPending = false;
   /** The last rect this component wrote; anything else in `rect` was set from outside. */
@@ -283,8 +286,11 @@ export class WindowComponent implements DesktopWindow {
 
   /** Shows the window again after it was minimized or closed, and brings it to the front. */
   restore(): void {
+    const wasAway = this.isAway();
     this.visible.set(true);
     this.minimized.set(false);
+    const rect = this.rect();
+    if (wasAway && rect) this.setRect(this.arrange(rect));
     this.focus();
   }
 
@@ -348,8 +354,18 @@ export class WindowComponent implements DesktopWindow {
         next = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold(), snapPadding());
         if (this.keepInBounds()) next = clampRect(next, bounds);
       }
-      const preview = this.dragZone ? zoneRect(this.dragZone, bounds, snapPadding()) : null;
-      desktop.showSnapPreview(preview ? { rect: preview, zIndex: this.zIndex() } : null);
+      const zoneTarget = this.dragZone ? zoneRect(this.dragZone, bounds, snapPadding()) : null;
+      desktop.showSnapPreview(zoneTarget ? { rect: zoneTarget, zIndex: this.zIndex() } : null);
+    }
+
+    const blocking = this.overlapDesktop();
+    if (blocking && this.dragZone !== 'maximize') {
+      // The window follows the pointer; the preview shows where it will actually land.
+      const target = this.dragZone ? zoneRect(this.dragZone, bounds, this.snapPadding()) : next;
+      const landing = this.fit(target);
+      this.dragLanding = landing;
+      const showLanding = !!landing && (!!this.dragZone || !sameRect(landing, next));
+      blocking.showSnapPreview(landing && showLanding ? { rect: landing, zIndex: this.zIndex() } : null);
     }
 
     this.setRect(next);
@@ -358,11 +374,15 @@ export class WindowComponent implements DesktopWindow {
   protected onDragEnd(): void {
     const zone = this.dragZone;
     const start = this.interactionStart;
+    const landing = this.dragLanding;
     this.dragZone = null;
+    this.dragLanding = null;
     this.unsnapPending = false;
     this.desktop?.showSnapPreview(null);
 
-    if (zone && start) {
+    if (start && this.overlapDesktop() && zone !== 'maximize') {
+      this.landWithoutOverlap(zone, start, landing);
+    } else if (zone && start) {
       if (zone === 'maximize') {
         this.setRect(start);
         this.maximized.set(true);
@@ -405,6 +425,10 @@ export class WindowComponent implements DesktopWindow {
       const { snapThreshold, snapPadding } = desktop.settings;
       next = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding());
     }
+    const blocking = this.overlapDesktop();
+    if (blocking) {
+      next = limitResize(next, this.interactionStart, direction, blocking.otherRects(this.id), this.snapPadding());
+    }
     this.setRect(next);
   }
 
@@ -440,7 +464,7 @@ export class WindowComponent implements DesktopWindow {
     if (saved?.version === 1) {
       this.applyLayout(saved);
     } else {
-      this.setRect(this.initialRect());
+      this.setRect(this.arrange(this.initialRect()));
     }
     this.ready.set(true);
   }
@@ -472,14 +496,23 @@ export class WindowComponent implements DesktopWindow {
     const zone = this.desktop ? layout.zone : null;
     this.snapZone.set(zone);
     this.restoreSize.set(zone ? layout.restoreSize : null);
+    let rect = layout.rect;
     if (zone) {
-      this.setRect(zoneRect(zone, bounds, this.snapPadding()));
-    } else {
-      this.setRect(this.keepInBounds() ? clampRect(layout.rect, bounds) : layout.rect);
+      rect = zoneRect(zone, bounds, this.snapPadding());
+    } else if (this.keepInBounds()) {
+      rect = clampRect(layout.rect, bounds);
     }
     this.visible.set(layout.visible);
     this.minimized.set(layout.minimized);
     this.maximized.set(layout.maximized);
+
+    const arranged = this.arrange(rect);
+    if (arranged !== rect) {
+      // It no longer fits where it was saved (overlap not allowed), so it is not in its zone any more.
+      this.snapZone.set(null);
+      this.restoreSize.set(null);
+    }
+    this.setRect(arranged);
   }
 
   private currentLayout(): WindowLayout | null {
@@ -516,7 +549,7 @@ export class WindowComponent implements DesktopWindow {
     if (rect === this.ownRect || !this.ready() || !rect) return;
     this.snapZone.set(null);
     this.restoreSize.set(null);
-    this.setRect(this.keepInBounds() ? clampRect(rect, this.bounds()) : rect);
+    this.setRect(this.arrange(this.keepInBounds() ? clampRect(rect, this.bounds()) : rect));
   }
 
   /** Keeps a snapped window in its zone and other windows inside the bounds after a resize of the bounds. */
@@ -530,6 +563,44 @@ export class WindowComponent implements DesktopWindow {
     } else if (this.keepInBounds()) {
       this.setRect(clampRect(rect, bounds));
     }
+  }
+
+  /** The desktop, when it does not allow windows to overlap. */
+  private overlapDesktop(): DesktopService | null {
+    return this.desktop && !this.desktop.settings.allowOverlap() ? this.desktop : null;
+  }
+
+  /** Where `rect` can go without overlapping the other windows, or `null` when there is no room. */
+  private fit(rect: Rect): Rect | null {
+    const desktop = this.desktop;
+    if (!desktop) return rect;
+    const minSize = { width: this.minWidth(), height: this.minHeight() };
+    return fitWithoutOverlap(rect, desktop.otherRects(this.id), desktop.bounds(), minSize, this.snapPadding());
+  }
+
+  /**
+   * Places a window that is opened, restored or set from code: when overlap is not allowed it is
+   * fitted into free space if there is room, otherwise left where it is.
+   */
+  private arrange(rect: Rect): Rect {
+    if (!this.overlapDesktop() || this.isAway() || this.maximized()) return rect;
+    const fitted = this.fit(rect);
+    return fitted && !sameRect(fitted, rect) ? fitted : rect;
+  }
+
+  /** Ends a drag when overlap is not allowed: land where the preview showed, or go back. */
+  private landWithoutOverlap(zone: SnapZone | null, start: Rect, landing: Rect | null): void {
+    if (!landing) {
+      this.setRect(start);
+      return;
+    }
+    const zoneTarget = zone ? zoneRect(zone, this.bounds(), this.snapPadding()) : null;
+    // Only a window that got its whole zone counts as snapped (and follows the zone on resizes).
+    const snappedZone = zoneTarget && sameRect(landing, zoneTarget) ? zone : null;
+    this.snapZone.set(snappedZone);
+    this.restoreSize.set(zone ? { width: start.width, height: start.height } : null);
+    this.setRect(landing);
+    if (zone) this.snapped.emit(snappedZone);
   }
 
   /** Gap kept around snapped windows (0 outside a desktop). */
@@ -591,4 +662,8 @@ export class WindowComponent implements DesktopWindow {
     const rect = this.rect();
     return rect && !this.maximized() && !this.collapsed() ? rect[dimension] : null;
   }
+}
+
+function sameRect(a: Rect, b: Rect): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }

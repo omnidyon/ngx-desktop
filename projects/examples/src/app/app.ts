@@ -41,6 +41,7 @@ export class App {
   protected readonly snapToZones = signal(true);
   protected readonly snapToWindows = signal(true);
   protected readonly snapPadding = signal(8);
+  protected readonly allowOverlap = signal(true);
   protected readonly log = signal<string[]>([]);
   protected readonly notesRect = signal<Rect | null>(null);
 
