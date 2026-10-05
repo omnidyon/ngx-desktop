@@ -13,6 +13,7 @@ import {
   Component,
   computed,
   contentChild,
+  viewChild,
   DestroyRef,
   DOCUMENT,
   effect,
@@ -64,6 +65,10 @@ export const KEYBOARD_STEP = 10;
 export const KEYBOARD_FINE_STEP = 1;
 /** @internal How long keyboard changes settle before they are announced (a held key repeats quickly). */
 export const ANNOUNCE_DELAY = 250;
+/** @internal How long the pointer rests on the maximize button before the snap layouts open. */
+export const LAYOUT_HOVER_DELAY = 400;
+/** @internal How long a touch on the maximize button lasts before it opens the snap layouts. */
+export const LAYOUT_LONG_PRESS = 500;
 
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
 const ARROW_KEYS: Readonly<Record<string, { x: number; y: number }>> = {
@@ -247,6 +252,11 @@ export class WindowComponent implements DesktopWindow {
   private pendingSave: { key: string; layout: WindowLayout } | null = null;
   private destroyed = false;
   private announceTimer: ReturnType<typeof setTimeout> | undefined;
+  private layoutHoverTimer: ReturnType<typeof setTimeout> | undefined;
+  private layoutPressTimer: ReturnType<typeof setTimeout> | undefined;
+  /** A long press opened the snap layouts; the click that ends it must not maximize. */
+  private skipMaximizeClick = false;
+  private readonly maximizeButton = viewChild<ElementRef<HTMLButtonElement>>('maximizeButton');
 
   /** Collapsed to a title bar (minimized while not inside a desktop). */
   protected readonly collapsed = computed(() => this.minimized() && !this.desktop);
@@ -259,6 +269,19 @@ export class WindowComponent implements DesktopWindow {
 
   /** Widgets have no dock tab. */
   readonly dockable = computed(() => !this.widget());
+  /** Whether the maximize button offers the snap layouts. */
+  protected readonly layoutsAvailable = computed(() => {
+    const settings = this.desktop?.settings;
+    return (
+      !!settings &&
+      settings.snapLayouts() &&
+      settings.snapToZones() &&
+      this.snappable() &&
+      this.draggable() &&
+      !this.fullScreen() &&
+      !this.minimized()
+    );
+  });
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -324,6 +347,15 @@ export class WindowComponent implements DesktopWindow {
       untracked(() => this.dockFlight.set(this.flightToDock()));
     });
 
+    // The snap layouts close when the window goes away or stops offering them.
+    effect(() => {
+      if (this.layoutsAvailable() && !this.isAway()) return;
+      untracked(() => {
+        clearTimeout(this.layoutHoverTimer);
+        this.desktop?.closeLayoutPicker(this.id);
+      });
+    });
+
     // A resize ends when its handles disappear (e.g. the window is maximized mid-resize).
     effect(() => {
       if (this.canResize()) return;
@@ -366,6 +398,8 @@ export class WindowComponent implements DesktopWindow {
       unblockBodyScroll(this.document, this.id);
       if (standaloneFrontId === this.id) standaloneFrontId = null;
       clearTimeout(this.announceTimer);
+      clearTimeout(this.layoutHoverTimer);
+      clearTimeout(this.layoutPressTimer);
     });
   }
 
@@ -459,6 +493,12 @@ export class WindowComponent implements DesktopWindow {
    * edge, Ctrl+arrows snap (left/right half, maximize, and restore or minimize). Alt makes steps 1px.
    */
   protected onHeaderKeydown(event: KeyboardEvent): void {
+    // Alt+Z (like Win+Z) works from the title bar and its maximize button. `code`: on macOS Alt+Z types Ω.
+    if (event.altKey && event.code === 'KeyZ' && this.layoutsAvailable()) {
+      event.preventDefault();
+      this.openLayouts(true);
+      return;
+    }
     // Keys in header buttons or in a custom header's own controls are theirs.
     if (event.target !== event.currentTarget) return;
     const arrow = ARROW_KEYS[event.key];
@@ -474,7 +514,74 @@ export class WindowComponent implements DesktopWindow {
     }
   }
 
+  protected onMaximizeClick(): void {
+    clearTimeout(this.layoutHoverTimer);
+    this.desktop?.closeLayoutPicker(this.id);
+    if (this.skipMaximizeClick) {
+      this.skipMaximizeClick = false;
+      return;
+    }
+    this.toggleMaximize();
+  }
+
+  protected onMaximizeEnter(): void {
+    if (!this.layoutsAvailable()) return;
+    this.desktop?.keepLayoutPicker();
+    clearTimeout(this.layoutHoverTimer);
+    this.layoutHoverTimer = setTimeout(() => this.openLayouts(false), LAYOUT_HOVER_DELAY);
+  }
+
+  protected onMaximizeLeave(): void {
+    clearTimeout(this.layoutHoverTimer);
+    if (this.desktop?.layoutPicker()?.window.id === this.id) this.desktop.closeLayoutPickerSoon();
+  }
+
+  /** Touch screens have no hover: a long press opens the snap layouts instead. */
+  protected onMaximizePointerDown(event: PointerEvent): void {
+    this.skipMaximizeClick = false;
+    if (event.pointerType !== 'touch' || !this.layoutsAvailable()) return;
+    clearTimeout(this.layoutPressTimer);
+    this.layoutPressTimer = setTimeout(() => {
+      this.skipMaximizeClick = true;
+      this.openLayouts(false);
+    }, LAYOUT_LONG_PRESS);
+  }
+
+  protected onMaximizePointerEnd(): void {
+    clearTimeout(this.layoutPressTimer);
+  }
+
+  /** Snaps the window into a zone of the snap layouts. */
+  snapTo(zone: SnapZone): void {
+    const start = this.rect();
+    if (!start || this.isAway()) return;
+    if (zone === 'maximize') {
+      this.maximized.set(true);
+      return;
+    }
+    if (this.snapToZone(zone, start)) {
+      const labels = this.labels();
+      this.announce(labels.announceSnappedZone, { zone: labels.zones[zone] });
+    }
+  }
+
+  private openLayouts(fromKeyboard: boolean): void {
+    clearTimeout(this.layoutHoverTimer);
+    const button = this.maximizeButton()?.nativeElement;
+    const desktop = this.desktop;
+    if (!button || !desktop || !this.layoutsAvailable()) return;
+    const box = button.getBoundingClientRect();
+    const { x, y } = desktop.toLocal(box.left, box.top);
+    const focused = this.document.activeElement;
+    desktop.openLayoutPicker({
+      window: this,
+      anchor: { x, y, width: box.width, height: box.height },
+      returnFocus: fromKeyboard && focused instanceof HTMLElement ? focused : null,
+    });
+  }
+
   protected onDragStart(): void {
+    this.desktop?.closeLayoutPicker(this.id);
     this.interactionStart = this.rect();
     this.interaction = this.interactionStart ? 'drag' : null;
     this.interacting.set(!!this.interactionStart);

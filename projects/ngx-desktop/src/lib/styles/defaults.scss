@@ -240,3 +240,29 @@
     initial-value: rgba(255, 255, 255, 0.6);
   }
 }
+
+@mixin snap-layouts-properties {
+  @property --omni-snap-layouts-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(24, 23, 28, 0.94);
+  }
+
+  @property --omni-snap-layouts-border-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.25);
+  }
+
+  @property --omni-snap-layouts-zone-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.18);
+  }
+
+  @property --omni-snap-layouts-zone-hover-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(150, 110, 255);
+  }
+}

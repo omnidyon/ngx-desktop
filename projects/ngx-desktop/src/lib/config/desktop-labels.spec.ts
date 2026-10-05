@@ -87,3 +87,15 @@ describe('formatLabel', () => {
     );
   });
 });
+
+describe('zone labels', () => {
+  it('can be translated one by one, the others staying English', () => {
+    TestBed.configureTestingModule({
+      providers: [provideDesktopConfig({ labels: { zones: { left: 'Linke Hälfte' } } })],
+    });
+    const labels = TestBed.inject(DESKTOP_LABELS)();
+    expect(labels.zones.left).toBe('Linke Hälfte');
+    expect(labels.zones.right).toBe(DEFAULT_DESKTOP_LABELS.zones.right);
+    expect(labels.close).toBe('Close');
+  });
+});

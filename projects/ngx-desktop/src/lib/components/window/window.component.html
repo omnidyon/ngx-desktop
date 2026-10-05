@@ -39,10 +39,18 @@
       }
       @if (maximizable() && !minimized() && !fullScreen()) {
         <button
+          #maximizeButton
           type="button"
           class="omni-window-button"
           [attr.aria-label]="maximized() ? labels().restoreSize : labels().maximize"
-          (click)="toggleMaximize()"
+          [attr.aria-keyshortcuts]="layoutsAvailable() ? 'Alt+Z' : null"
+          (click)="onMaximizeClick()"
+          (mouseenter)="onMaximizeEnter()"
+          (mouseleave)="onMaximizeLeave()"
+          (pointerdown)="onMaximizePointerDown($event)"
+          (pointerup)="onMaximizePointerEnd()"
+          (pointercancel)="onMaximizePointerEnd()"
+          (contextmenu)="layoutsAvailable() && $event.preventDefault()"
         >
           <omni-maximize-icon [restore]="maximized()" />
         </button>

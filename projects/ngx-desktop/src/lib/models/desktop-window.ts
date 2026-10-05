@@ -7,7 +7,7 @@
  */
 
 import { Signal } from '@angular/core';
-import { Rect } from './types';
+import { Rect, SnapZone } from './types';
 
 /**
  * @internal
@@ -37,4 +37,6 @@ export interface DesktopWindow {
   close(): void;
   /** Puts the window at a rect chosen by the desktop (tile, cascade). */
   place(rect: Rect): void;
+  /** Snaps the window into a zone (from the snap layouts). */
+  snapTo(zone: SnapZone): void;
 }

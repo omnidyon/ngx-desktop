@@ -25,6 +25,7 @@ function fakeWindow(id: string, header: string, icon?: string): DesktopWindow {
     minimize: vi.fn(),
     close: vi.fn(),
     place: vi.fn(),
+    snapTo: vi.fn(),
   };
 }
 

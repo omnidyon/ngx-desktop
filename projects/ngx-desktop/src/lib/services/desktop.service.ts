@@ -24,6 +24,7 @@ export interface DesktopSettings {
   snapThreshold: Signal<number>;
   snapPadding: Signal<number>;
   allowOverlap: Signal<boolean>;
+  snapLayouts: Signal<boolean>;
 }
 
 /** @internal */
@@ -31,6 +32,18 @@ export const DEFAULT_SNAP_THRESHOLD = 16;
 
 /** @internal How far each cascaded window is moved right and down from the previous one. */
 export const CASCADE_STEP = 32;
+
+/** @internal How long the snap layouts stay open after the pointer leaves the maximize button or the flyout. */
+export const LAYOUT_PICKER_CLOSE_DELAY = 300;
+
+/** @internal The snap layouts flyout, opened for one window. */
+export interface LayoutPicker {
+  window: DesktopWindow;
+  /** The maximize button it belongs to, in container coordinates. */
+  anchor: Rect;
+  /** Opened from the keyboard: focus moves into the flyout and back here when it closes. */
+  returnFocus: HTMLElement | null;
+}
 
 /** @internal */
 export interface SnapPreview {
@@ -58,6 +71,8 @@ export class DesktopService {
   private readonly _snapPreview = signal<SnapPreview | null>(null);
   private readonly _size = signal<Size>({ width: 0, height: 0 });
   private readonly _shownCount = signal(0);
+  private readonly _layoutPicker = signal<LayoutPicker | null>(null);
+  private layoutPickerTimer: ReturnType<typeof setTimeout> | undefined;
   /** Windows minimized by `toggleShowDesktop()`, bottom to top. */
   private readonly _hiddenForDesktop = signal<readonly DesktopWindow[]>([]);
   /** The last measurement was 0 × 0 (the desktop is hidden). */
@@ -70,6 +85,7 @@ export class DesktopService {
     snapThreshold: signal(DEFAULT_SNAP_THRESHOLD),
     snapPadding: signal(0),
     allowOverlap: signal(true),
+    snapLayouts: signal(true),
   };
 
   readonly windows = this._windows.asReadonly();
@@ -89,6 +105,8 @@ export class DesktopService {
   readonly shownCount = this._shownCount.asReadonly();
   /** Where a dragged window would snap to; shown as an overlay by the desktop. */
   readonly snapPreview = this._snapPreview.asReadonly();
+  /** The open snap layouts flyout, rendered by the desktop. */
+  readonly layoutPicker = this._layoutPicker.asReadonly();
   /** Whether `toggleShowDesktop()` hid windows that are still minimized. */
   readonly showingDesktop = computed(() =>
     this._hiddenForDesktop().some((w) => w.visible() && w.minimized() && this._windows().includes(w))
@@ -186,6 +204,32 @@ export class DesktopService {
   unregister(id: string): void {
     this._windows.update((windows) => windows.filter((w) => w.id !== id));
     this._stack.update((stack) => stack.filter((s) => s !== id));
+    if (this._layoutPicker()?.window.id === id) this.closeLayoutPicker();
+  }
+
+  openLayoutPicker(picker: LayoutPicker): void {
+    clearTimeout(this.layoutPickerTimer);
+    this._layoutPicker.set(picker);
+  }
+
+  /** Closes the snap layouts; with a window id, only when they belong to that window. */
+  closeLayoutPicker(windowId?: string): void {
+    const picker = this._layoutPicker();
+    if (!picker || (windowId && picker.window.id !== windowId)) return;
+    clearTimeout(this.layoutPickerTimer);
+    this._layoutPicker.set(null);
+  }
+
+  /** The pointer left the maximize button or the flyout: close unless it comes back in time. */
+  closeLayoutPickerSoon(): void {
+    clearTimeout(this.layoutPickerTimer);
+    if (!this._layoutPicker()) return;
+    this.layoutPickerTimer = setTimeout(() => this.closeLayoutPicker(), LAYOUT_PICKER_CLOSE_DELAY);
+  }
+
+  /** The pointer came back: keep the snap layouts open. */
+  keepLayoutPicker(): void {
+    clearTimeout(this.layoutPickerTimer);
   }
 
   /** Brings a window to the top of the stack. */

@@ -1,0 +1,18 @@
+@for (layout of layouts; track $index) {
+  <div class="omni-snap-layout" role="group">
+    @for (zone of layout; track zone) {
+      @let place = zoneStyle(zone);
+      <button
+        type="button"
+        class="omni-snap-zone"
+        [style.left.%]="place.left"
+        [style.top.%]="place.top"
+        [style.width.%]="place.width"
+        [style.height.%]="place.height"
+        [attr.aria-label]="labels().zones[zone]"
+        [attr.title]="labels().zones[zone]"
+        (click)="choose(zone)"
+      ></button>
+    }
+  </div>
+}

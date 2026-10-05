@@ -27,7 +27,22 @@ export interface WindowLayout {
   visible: boolean;
 }
 
-const ZONES: readonly SnapZone[] = ['left', 'right', 'topleft', 'topright', 'bottomleft', 'bottomright', 'maximize'];
+const ZONES: readonly SnapZone[] = [
+  'left',
+  'right',
+  'topleft',
+  'topright',
+  'bottomleft',
+  'bottomright',
+  'leftthird',
+  'centerthird',
+  'rightthird',
+  'lefttwothirds',
+  'righttwothirds',
+  'toprightthird',
+  'bottomrightthird',
+  'maximize',
+];
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);

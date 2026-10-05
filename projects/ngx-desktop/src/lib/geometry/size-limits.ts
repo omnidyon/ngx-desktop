@@ -22,20 +22,36 @@ export function limitSize(rect: Rect, min: Size, max: Size): Rect {
   };
 }
 
+/** Zones against the right edge of the desktop. */
+const RIGHT_ZONES: readonly SnapZone[] = [
+  'right',
+  'topright',
+  'bottomright',
+  'rightthird',
+  'righttwothirds',
+  'toprightthird',
+  'bottomrightthird',
+];
+
 /**
  * @internal
  * @description
  * Fits a window with a maximum size into a snap zone: it is shrunk to the maximum and kept against
  * the zone's outer side (the left half stays at the left edge, the bottom-right quarter in the
- * bottom-right corner, and so on).
+ * bottom-right corner, the middle third in the middle, and so on).
  */
 export function limitZoneRect(zone: SnapZone, rect: Rect, max: Size): Rect {
   const width = Math.min(rect.width, max.width);
   const height = Math.min(rect.height, max.height);
-  const alignRight = zone === 'right' || zone === 'topright' || zone === 'bottomright';
-  const alignBottom = zone === 'bottomleft' || zone === 'bottomright';
+  const alignRight = RIGHT_ZONES.includes(zone);
+  const alignBottom = zone === 'bottomleft' || zone === 'bottomright' || zone === 'bottomrightthird';
+  const x = alignRight
+    ? rect.x + rect.width - width
+    : zone === 'centerthird'
+      ? rect.x + Math.round((rect.width - width) / 2)
+      : rect.x;
   return {
-    x: alignRight ? rect.x + rect.width - width : rect.x,
+    x,
     y: alignBottom ? rect.y + rect.height - height : rect.y,
     width,
     height,

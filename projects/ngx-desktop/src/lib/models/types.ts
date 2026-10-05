@@ -24,9 +24,31 @@ export type DesktopTheme = 'default' | 'aqua' | 'discord' | 'light' | 'neo-san-f
 /**
  * @publicApi
  * @description
- * Container zones a window can be snapped into.
+ * Container zones a window can be snapped into. Halves, quarters and `maximize` are reached by dragging to
+ * an edge or corner; every zone except `maximize` is offered by the snap layouts of the maximize button.
  */
-export type SnapZone = 'left' | 'right' | 'topleft' | 'topright' | 'bottomleft' | 'bottomright' | 'maximize';
+export type SnapZone =
+  | 'left'
+  | 'right'
+  | 'topleft'
+  | 'topright'
+  | 'bottomleft'
+  | 'bottomright'
+  | 'leftthird'
+  | 'centerthird'
+  | 'rightthird'
+  | 'lefttwothirds'
+  | 'righttwothirds'
+  | 'toprightthird'
+  | 'bottomrightthird'
+  | 'maximize';
+
+/**
+ * @publicApi
+ * @description
+ * The zones of the snap layouts (every zone except `maximize`).
+ */
+export type LayoutZone = Exclude<SnapZone, 'maximize'>;
 
 /**
  * @publicApi

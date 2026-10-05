@@ -25,6 +25,7 @@ function fakeWindow(id: string, visible = true): DesktopWindow & { visible: Retu
     minimize: vi.fn(),
     close: vi.fn(),
     place: vi.fn(),
+    snapTo: vi.fn(),
   };
 }
 

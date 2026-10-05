@@ -39,6 +39,10 @@
         />
         <span>Windows</span>
       </label>
+      <label class="switch">
+        <input type="checkbox" role="switch" [checked]="snapLayouts()" (change)="snapLayouts.set(!snapLayouts())" />
+        <span>Layouts</span>
+      </label>
       <label class="field">
         <span>Padding</span>
         <span class="control number">
@@ -122,6 +126,7 @@
     [dock]="dock()"
     [snapToZones]="snapToZones()"
     [snapToWindows]="snapToWindows()"
+    [snapLayouts]="snapLayouts()"
     [snapPadding]="snapPadding()"
     [allowOverlap]="allowOverlap()"
   >

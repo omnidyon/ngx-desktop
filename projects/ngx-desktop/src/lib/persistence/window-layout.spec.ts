@@ -16,6 +16,11 @@ describe('isWindowLayout', () => {
     expect(isWindowLayout({ ...valid, zone: null, restoreSize: null })).toBe(true);
   });
 
+  it('accepts the zones of the snap layouts', () => {
+    expect(isWindowLayout({ ...valid, zone: 'centerthird' })).toBe(true);
+    expect(isWindowLayout({ ...valid, zone: 'bottomrightthird' })).toBe(true);
+  });
+
   it.each([
     ['null', null],
     ['a string', 'layout'],

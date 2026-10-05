@@ -66,7 +66,7 @@ export function detectZone(pointer: { x: number; y: number }, bounds: Rect, thre
  * @internal
  * @description
  * The rectangle a window takes when snapped into a zone. `padding` is kept free between the
- * zone and the bounds edges and between neighbouring zones (halves/quarters); `maximize`
+ * zone and the bounds edges and between neighbouring zones (halves, quarters, thirds); `maximize`
  * always fills the whole bounds, like the maximize button.
  */
 export function zoneRect(zone: SnapZone, bounds: Rect, padding = 0): Rect {
@@ -83,6 +83,14 @@ export function zoneRect(zone: SnapZone, bounds: Rect, padding = 0): Rect {
   const top = { y: bounds.y + p, height: topHeight };
   const bottom = { y: bounds.y + 2 * p + topHeight, height: innerHeight - topHeight };
   const full = { y: bounds.y + p, height: Math.max(bounds.height - 2 * p, 0) };
+  // Thirds: three columns with the gap between them; two-thirds span a gap.
+  const third = Math.round(Math.max(bounds.width - 4 * p, 0) / 3);
+  const column0 = bounds.x + p;
+  const column1 = column0 + third + p;
+  const column2 = column1 + third + p;
+  const end = bounds.x + bounds.width - p;
+  const columns = (from: number, to: number) => ({ x: from, width: Math.max(to - from, 0) });
+  const lastThird = columns(column2, end);
 
   switch (zone) {
     case 'left':
@@ -97,5 +105,19 @@ export function zoneRect(zone: SnapZone, bounds: Rect, padding = 0): Rect {
       return { ...left, ...bottom };
     case 'bottomright':
       return { ...right, ...bottom };
+    case 'leftthird':
+      return { ...columns(column0, column0 + third), ...full };
+    case 'centerthird':
+      return { ...columns(column1, column1 + third), ...full };
+    case 'rightthird':
+      return { ...lastThird, ...full };
+    case 'lefttwothirds':
+      return { ...columns(column0, column1 + third), ...full };
+    case 'righttwothirds':
+      return { ...columns(column1, end), ...full };
+    case 'toprightthird':
+      return { ...lastThird, ...top };
+    case 'bottomrightthird':
+      return { ...lastThird, ...bottom };
   }
 }

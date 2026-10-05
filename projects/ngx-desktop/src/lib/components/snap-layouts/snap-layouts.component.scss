@@ -1,0 +1,66 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+@use '../../styles/defaults';
+
+@include defaults.snap-layouts-properties;
+
+:host {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  padding: 8px;
+  background: var(--omni-snap-layouts-background);
+  border: 1px solid var(--omni-snap-layouts-border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: omni-snap-layouts-in 120ms ease-out;
+}
+
+.omni-snap-layout {
+  position: relative;
+}
+
+// Each zone is a button laid out like the zone on the desktop, with a small gap around it.
+.omni-snap-zone {
+  position: absolute;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: var(--omni-snap-layouts-zone-background);
+  border-radius: 4px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--omni-snap-layouts-zone-hover-background);
+    outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 1px var(--omni-snap-layouts-border-color);
+  }
+}
+
+@keyframes omni-snap-layouts-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    animation: none;
+  }
+}

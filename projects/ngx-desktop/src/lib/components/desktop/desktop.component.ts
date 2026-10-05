@@ -24,6 +24,7 @@ import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
 import { ArrangeOptions, DesktopTheme, DesktopWindowInfo, DockPosition, TileMode } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
+import { SnapLayoutsComponent } from '../snap-layouts/snap-layouts.component';
 
 /**
  * @publicApi
@@ -59,7 +60,7 @@ import { DockComponent } from '../dock/dock.component';
 @Component({
   selector: 'omni-desktop',
   exportAs: 'omniDesktop',
-  imports: [DockComponent],
+  imports: [DockComponent, SnapLayoutsComponent],
   providers: [DesktopService],
   templateUrl: './desktop.component.html',
   styleUrl: './desktop.component.scss',
@@ -88,6 +89,11 @@ export class DesktopComponent {
   readonly snapPadding = input(0, { transform: numberAttribute });
   /** When `false`, windows are kept from overlapping: the window being placed adjusts to fit. */
   readonly allowOverlap = input(true, { transform: booleanAttribute });
+  /**
+   * Snap layouts on the maximize button: hovering it (a long press on touch screens, Alt+Z on a focused
+   * title bar) offers halves, thirds, quarters and more. Needs `snapToZones`.
+   */
+  readonly snapLayouts = input(true, { transform: booleanAttribute });
 
   /** Every window and widget of the desktop, in the order they were added (closed ones included). */
   readonly windows: Signal<readonly DesktopWindowInfo[]> = computed(() =>
@@ -175,6 +181,7 @@ export class DesktopComponent {
       snapThreshold: this.snapThreshold,
       snapPadding: this.snapPadding,
       allowOverlap: this.allowOverlap,
+      snapLayouts: this.snapLayouts,
     };
 
     // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).

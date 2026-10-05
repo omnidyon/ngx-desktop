@@ -13,6 +13,12 @@ Windows inside an `<omni-desktop>` snap into place while they are dragged:
   again gives it back its previous size.
 - **Windows**: an edge that comes within `snapThreshold` px of another window's edge (or the desktop's edge) lines up
   with it, while moving and while resizing.
+- **Snap layouts**: rest the pointer on a window's maximize button (long-press it on a touch screen, or press Alt+Z on
+  its focused title bar) to get a small flyout of layouts: halves, two-thirds + one third, one third + two-thirds,
+  thirds, quarters, and two-thirds with the right third split in two. Click a part of a layout to put the window
+  there. A plain click on the button still maximizes. The new zones (`leftthird`, `centerthird`, `rightthird`,
+  `lefttwothirds`, `righttwothirds`, `toprightthird`, `bottomrightthird`) behave like the others: they keep
+  `snapPadding`, follow desktop resizes and are saved with `persistKey`.
 
 | `<omni-desktop>` input | Meaning                                                                     | Default |
 | ---------------------- | --------------------------------------------------------------------------- | ------- |
@@ -20,6 +26,7 @@ Windows inside an `<omni-desktop>` snap into place while they are dragged:
 | `snapToWindows`        | line edges up with other windows and the desktop edges                      | `true`  |
 | `snapThreshold`        | distance in px at which edges and zones attract a window                    | `16`    |
 | `snapPadding`          | gap in px kept around and between snapped windows and from the desktop edge | `0`     |
+| `snapLayouts`          | snap layouts flyout on the maximize button (needs `snapToZones`)            | `true`  |
 
 A single window can opt out with `[snappable]="false"`; `(snapped)` emits the zone (or `null` when dragged out).
 
@@ -295,6 +302,7 @@ focused title bar:
 | Ctrl + Left / Right | snap to the left / right half                                                          |
 | Ctrl + Up           | maximize                                                                               |
 | Ctrl + Down         | restore a maximized or snapped window; otherwise minimize (focus goes to its dock tab) |
+| Alt + Z             | open the snap layouts (Tab to a zone, Enter to choose, Escape to close)                |
 
 Keyboard moves and resizes follow the same rules as the mouse: bounds, minimum and maximum size, magnetic snapping
 (only pulling the way the key goes, so a window can always step away from an edge) and no-overlap. They emit
@@ -325,24 +333,27 @@ const labels = computed(() => ({ close: translate('close'), minimize: translate(
 provideDesktopConfig({ labels });
 ```
 
-| Label                  | Default                                 | Used for                                                           |
-| ---------------------- | --------------------------------------- | ------------------------------------------------------------------ |
-| `close`                | `Close`                                 | close button of windows, widgets and dialogs                       |
-| `minimize`             | `Minimize`                              | minimize button                                                    |
-| `restore`              | `Restore`                               | minimize button while minimized                                    |
-| `maximize`             | `Maximize`                              | maximize button                                                    |
-| `restoreSize`          | `Restore size`                          | maximize button while maximized                                    |
-| `fullScreen`           | `Full screen`                           | full-screen button                                                 |
-| `exitFullScreen`       | `Exit full screen`                      | full-screen button while full screen                               |
-| `dock`                 | `Windows`                               | the dock toolbar                                                   |
-| `untitledWindow`       | `Window`                                | dock tab of a window without a `header`, `{name}` in announcements |
-| `keyboardHelp`         | `Arrow keys move the window, …`         | read on a focused title bar (see _Keyboard_)                       |
-| `announceMoved`        | `{name} moved to {x}, {y}`              | after a keyboard move                                              |
-| `announceResized`      | `{name} resized to {width} by {height}` | after a keyboard resize                                            |
-| `announceSnappedLeft`  | `{name} snapped to the left half`       | after Ctrl+Left                                                    |
-| `announceSnappedRight` | `{name} snapped to the right half`      | after Ctrl+Right                                                   |
-| `announceMaximized`    | `{name} maximized`                      | after Ctrl+Up                                                      |
-| `announceRestored`     | `{name} restored`                       | after Ctrl+Down restores a maximized or snapped window             |
+| Label                  | Default                                 | Used for                                                                         |
+| ---------------------- | --------------------------------------- | -------------------------------------------------------------------------------- |
+| `close`                | `Close`                                 | close button of windows, widgets and dialogs                                     |
+| `minimize`             | `Minimize`                              | minimize button                                                                  |
+| `restore`              | `Restore`                               | minimize button while minimized                                                  |
+| `maximize`             | `Maximize`                              | maximize button                                                                  |
+| `restoreSize`          | `Restore size`                          | maximize button while maximized                                                  |
+| `fullScreen`           | `Full screen`                           | full-screen button                                                               |
+| `exitFullScreen`       | `Exit full screen`                      | full-screen button while full screen                                             |
+| `dock`                 | `Windows`                               | the dock toolbar                                                                 |
+| `untitledWindow`       | `Window`                                | dock tab of a window without a `header`, `{name}` in announcements               |
+| `keyboardHelp`         | `Arrow keys move the window, …`         | read on a focused title bar (see _Keyboard_)                                     |
+| `announceMoved`        | `{name} moved to {x}, {y}`              | after a keyboard move                                                            |
+| `announceResized`      | `{name} resized to {width} by {height}` | after a keyboard resize                                                          |
+| `announceSnappedLeft`  | `{name} snapped to the left half`       | after Ctrl+Left                                                                  |
+| `announceSnappedRight` | `{name} snapped to the right half`      | after Ctrl+Right                                                                 |
+| `announceMaximized`    | `{name} maximized`                      | after Ctrl+Up                                                                    |
+| `announceRestored`     | `{name} restored`                       | after Ctrl+Down restores a maximized or snapped window                           |
+| `snapLayouts`          | `Snap layouts`                          | the snap layouts flyout                                                          |
+| `zones`                | `{ left: 'Left half', … }`              | names of the zones in the flyout and in announcements; translate them one by one |
+| `announceSnappedZone`  | `{name}: {zone}`                        | after choosing a zone in the snap layouts                                        |
 
 Placeholders in `{braces}` are filled in; keep them in translations.
 
@@ -353,44 +364,48 @@ Placeholders in `{braces}` are filled in; keep them in translations.
 When installed, windows, dialogs and the dock come in a default style. You can restyle them by defining any of the
 values below on the component itself or on any ancestor element (for example `omni-desktop`, `body` or `:root`).
 
-| Variable                            | Meaning                                                                             | Default                   |
-| ----------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- |
-| --omni-window-width                 | initial window width (unless the `width` input is set)                              | 50%                       |
-| --omni-window-height                | initial window height (unless the `height` input is set)                            | 50%                       |
-| --omni-window-background            | window background                                                                   | rgb(49, 31, 49)           |
-| --omni-window-border-color          | window border color                                                                 | grey                      |
-| --omni-window-border-width          | window border width                                                                 | 1px                       |
-| --omni-window-border-radius         | window corner radius                                                                | 20px                      |
-| --omni-window-header-height         | header height                                                                       | 30px                      |
-| --omni-window-header-background     | header background                                                                   | #40303f                   |
-| --omni-window-header-text-color     | header text and button color                                                        | rgb(200, 193, 193)        |
-| --omni-window-header-font-size      | header font size                                                                    | 18px                      |
-| --omni-window-header-font-weight    | header font weight                                                                  | 200                       |
-| --omni-window-content-color         | content and footer text color                                                       | rgb(200, 193, 193)        |
-| --omni-window-content-padding       | content padding                                                                     | 5px                       |
-| --omni-window-icon-size             | max size of the header icon                                                         | 24px                      |
-| --omni-window-button-size           | size of the header buttons                                                          | 20px                      |
-| --omni-window-collapsed-width       | width of a minimized window outside a desktop                                       | 105px                     |
-| --omni-window-transition-duration   | open/close/minimize animation duration (0s when the system asks for reduced motion) | 300ms                     |
-| --omni-window-scrollbar-size        | width of the scrollbar inside windows and dialogs                                   | 8px                       |
-| --omni-window-scrollbar-thumb       | scrollbar thumb colour                                                              | rgba(200, 193, 193, 0.35) |
-| --omni-window-scrollbar-thumb-hover | scrollbar thumb colour on hover                                                     | rgba(200, 193, 193, 0.6)  |
-| --omni-window-scrollbar-track       | scrollbar track colour                                                              | transparent               |
-| --omni-widget-grip-background       | background of the widget grip and close button                                      | rgba(0, 0, 0, 0.35)       |
-| --omni-dialog-background            | dialog background                                                                   | rgb(86, 60, 86)           |
-| --omni-dialog-overlay-color         | modal overlay color                                                                 | rgba(0, 0, 0, 0.4)        |
-| --omni-dialog-width                 | dialog width                                                                        | 40%                       |
-| --omni-dialog-max-height            | dialog maximum height                                                               | 80%                       |
-| --omni-dock-background              | dock background                                                                     | #18171780                 |
-| --omni-dock-tab-background          | dock tab background                                                                 | #11010180                 |
-| --omni-dock-tab-hover-background    | dock tab background on hover                                                        | black                     |
-| --omni-dock-active-tab-background   | background of tabs whose window is minimized                                        | #43393980                 |
-| --omni-dock-text-color              | dock tab text color, focused tab border                                             | grey                      |
-| --omni-dock-tab-size                | dock tab width and height                                                           | 40px                      |
-| --omni-dock-border-radius           | dock corner radius                                                                  | 20px                      |
-| --omni-dock-padding                 | dock padding and gap between tabs                                                   | 5px                       |
-| --omni-snap-preview-background      | fill of the snap preview shown while dragging                                       | rgba(255, 255, 255, 0.15) |
-| --omni-snap-preview-border-color    | border of the snap preview                                                          | rgba(255, 255, 255, 0.6)  |
+| Variable                                  | Meaning                                                                             | Default                   |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- |
+| --omni-window-width                       | initial window width (unless the `width` input is set)                              | 50%                       |
+| --omni-window-height                      | initial window height (unless the `height` input is set)                            | 50%                       |
+| --omni-window-background                  | window background                                                                   | rgb(49, 31, 49)           |
+| --omni-window-border-color                | window border color                                                                 | grey                      |
+| --omni-window-border-width                | window border width                                                                 | 1px                       |
+| --omni-window-border-radius               | window corner radius                                                                | 20px                      |
+| --omni-window-header-height               | header height                                                                       | 30px                      |
+| --omni-window-header-background           | header background                                                                   | #40303f                   |
+| --omni-window-header-text-color           | header text and button color                                                        | rgb(200, 193, 193)        |
+| --omni-window-header-font-size            | header font size                                                                    | 18px                      |
+| --omni-window-header-font-weight          | header font weight                                                                  | 200                       |
+| --omni-window-content-color               | content and footer text color                                                       | rgb(200, 193, 193)        |
+| --omni-window-content-padding             | content padding                                                                     | 5px                       |
+| --omni-window-icon-size                   | max size of the header icon                                                         | 24px                      |
+| --omni-window-button-size                 | size of the header buttons                                                          | 20px                      |
+| --omni-window-collapsed-width             | width of a minimized window outside a desktop                                       | 105px                     |
+| --omni-window-transition-duration         | open/close/minimize animation duration (0s when the system asks for reduced motion) | 300ms                     |
+| --omni-window-scrollbar-size              | width of the scrollbar inside windows and dialogs                                   | 8px                       |
+| --omni-window-scrollbar-thumb             | scrollbar thumb colour                                                              | rgba(200, 193, 193, 0.35) |
+| --omni-window-scrollbar-thumb-hover       | scrollbar thumb colour on hover                                                     | rgba(200, 193, 193, 0.6)  |
+| --omni-window-scrollbar-track             | scrollbar track colour                                                              | transparent               |
+| --omni-widget-grip-background             | background of the widget grip and close button                                      | rgba(0, 0, 0, 0.35)       |
+| --omni-dialog-background                  | dialog background                                                                   | rgb(86, 60, 86)           |
+| --omni-dialog-overlay-color               | modal overlay color                                                                 | rgba(0, 0, 0, 0.4)        |
+| --omni-dialog-width                       | dialog width                                                                        | 40%                       |
+| --omni-dialog-max-height                  | dialog maximum height                                                               | 80%                       |
+| --omni-dock-background                    | dock background                                                                     | #18171780                 |
+| --omni-dock-tab-background                | dock tab background                                                                 | #11010180                 |
+| --omni-dock-tab-hover-background          | dock tab background on hover                                                        | black                     |
+| --omni-dock-active-tab-background         | background of tabs whose window is minimized                                        | #43393980                 |
+| --omni-dock-text-color                    | dock tab text color, focused tab border                                             | grey                      |
+| --omni-dock-tab-size                      | dock tab width and height                                                           | 40px                      |
+| --omni-dock-border-radius                 | dock corner radius                                                                  | 20px                      |
+| --omni-dock-padding                       | dock padding and gap between tabs                                                   | 5px                       |
+| --omni-snap-preview-background            | fill of the snap preview shown while dragging                                       | rgba(255, 255, 255, 0.15) |
+| --omni-snap-preview-border-color          | border of the snap preview                                                          | rgba(255, 255, 255, 0.6)  |
+| --omni-snap-layouts-background            | background of the snap layouts flyout                                               | rgba(24, 23, 28, 0.94)    |
+| --omni-snap-layouts-border-color          | border of the flyout and focus ring of its zones                                    | rgba(255, 255, 255, 0.25) |
+| --omni-snap-layouts-zone-background       | a zone in the flyout                                                                | rgba(255, 255, 255, 0.18) |
+| --omni-snap-layouts-zone-hover-background | a zone under the pointer or focused                                                 | rgb(150, 110, 255)        |
 
 ```scss
 omni-desktop {

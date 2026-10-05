@@ -52,6 +52,25 @@ describe('snap zones', () => {
       expect(zoneRect('bottomright', bounds)).toEqual({ x: 500, y: 400, width: 500, height: 400 });
     });
 
+    it('returns thirds and two-thirds, the last column taking the rounding', () => {
+      expect(zoneRect('leftthird', bounds)).toEqual({ x: 0, y: 0, width: 333, height: 800 });
+      expect(zoneRect('centerthird', bounds)).toEqual({ x: 333, y: 0, width: 333, height: 800 });
+      expect(zoneRect('rightthird', bounds)).toEqual({ x: 666, y: 0, width: 334, height: 800 });
+      expect(zoneRect('lefttwothirds', bounds)).toEqual({ x: 0, y: 0, width: 666, height: 800 });
+      expect(zoneRect('righttwothirds', bounds)).toEqual({ x: 333, y: 0, width: 667, height: 800 });
+      expect(zoneRect('toprightthird', bounds)).toEqual({ x: 666, y: 0, width: 334, height: 400 });
+      expect(zoneRect('bottomrightthird', bounds)).toEqual({ x: 666, y: 400, width: 334, height: 400 });
+    });
+
+    it('keeps the padding around and between thirds', () => {
+      expect(zoneRect('leftthird', bounds, 10)).toEqual({ x: 10, y: 10, width: 320, height: 780 });
+      expect(zoneRect('centerthird', bounds, 10)).toEqual({ x: 340, y: 10, width: 320, height: 780 });
+      expect(zoneRect('rightthird', bounds, 10)).toEqual({ x: 670, y: 10, width: 320, height: 780 });
+      expect(zoneRect('lefttwothirds', bounds, 10)).toEqual({ x: 10, y: 10, width: 650, height: 780 });
+      expect(zoneRect('toprightthird', bounds, 10)).toEqual({ x: 670, y: 10, width: 320, height: 385 });
+      expect(zoneRect('bottomrightthird', bounds, 10)).toEqual({ x: 670, y: 405, width: 320, height: 385 });
+    });
+
     it('returns the whole bounds for maximize', () => {
       expect(zoneRect('maximize', bounds)).toEqual(bounds);
     });

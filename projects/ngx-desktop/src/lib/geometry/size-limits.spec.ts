@@ -50,5 +50,14 @@ describe('size limits', () => {
     it('keeps a bottom-right quarter in the corner', () => {
       expect(limitZoneRect('bottomright', bottomRight, max)).toEqual({ x: 700, y: 400, width: 300, height: 200 });
     });
+
+    it('keeps the middle third centred and right-side thirds against the right edge', () => {
+      const middle = { x: 300, y: 0, width: 400, height: 600 };
+      expect(limitZoneRect('centerthird', middle, max)).toEqual({ x: 350, y: 0, width: 300, height: 200 });
+      const rightThird = { x: 600, y: 0, width: 400, height: 600 };
+      expect(limitZoneRect('rightthird', rightThird, max)).toEqual({ x: 700, y: 0, width: 300, height: 200 });
+      const bottomThird = { x: 600, y: 300, width: 400, height: 300 };
+      expect(limitZoneRect('bottomrightthird', bottomThird, max)).toEqual({ x: 700, y: 400, width: 300, height: 200 });
+    });
   });
 });
