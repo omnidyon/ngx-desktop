@@ -1,0 +1,5 @@
+{
+  "name": "@omnidyon/ngx-desktop",
+  "version": "0.0.1",
+  "exports": "./projects/ngx-desktop/src/public-api.ts"
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@omnidyon/ngx-desktop",
+  "version": "0.0.1",
+  "description": "A desktop-style window manager for Angular: draggable, resizable windows with snap-in-place, optional no-overlap layout, dock and dialogs. Themeable via CSS variables.",
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false,
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omnidyon/ngx-desktop.git"
+  },
+  "author": "Slavko Mihajlovic",
+  "bugs": {
+    "url": "https://github.com/omnidyon/ngx-desktop/issues"
+  },
+  "homepage": "https://github.com/omnidyon/ngx-desktop#readme",
+  "license": "ISC",
+  "keywords": [
+    "Angular",
+    "Angular 21",
+    "angular",
+    "window",
+    "windows",
+    "window manager",
+    "desktop",
+    "dialog",
+    "dock",
+    "draggable",
+    "resizable",
+    "snap",
+    "snapping",
+    "layout",
+    "Styling",
+    "Theming",
+    "Theme"
+  ]
+}
