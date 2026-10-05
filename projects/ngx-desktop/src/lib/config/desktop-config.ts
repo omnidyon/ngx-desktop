@@ -7,6 +7,7 @@
  */
 
 import { InjectionToken, Provider } from '@angular/core';
+import { DESKTOP_LABELS, DesktopLabelsInput, desktopLabels } from './desktop-labels';
 
 /**
  * @publicApi
@@ -57,20 +58,26 @@ export const DESKTOP_CONFIG = new InjectionToken<DesktopConfig>('DESKTOP_CONFIG'
 /**
  * @publicApi
  * @description
- * Overrides parts of the default configuration.
+ * Overrides parts of the default configuration. `labels` translates the button and dock texts
+ * (see {@link DesktopLabels}); pass a signal to switch language at runtime.
  *
  * @usageNotes
- * bootstrapApplication(App, { providers: [provideDesktopConfig({ zIndex: { window: 500 }, motion: 'full' })] });
+ * bootstrapApplication(App, { providers: [provideDesktopConfig({ zIndex: { window: 500 }, motion: 'full', labels: { close: 'Schließen' } })] });
  */
 export function provideDesktopConfig(config: {
   zIndex?: Partial<DesktopConfig['zIndex']>;
   motion?: DesktopMotion;
+  labels?: DesktopLabelsInput;
 }): Provider {
-  return {
-    provide: DESKTOP_CONFIG,
-    useValue: {
-      zIndex: { ...DEFAULT_DESKTOP_CONFIG.zIndex, ...config.zIndex },
-      motion: config.motion ?? DEFAULT_DESKTOP_CONFIG.motion,
-    } satisfies DesktopConfig,
-  };
+  const providers: Provider[] = [
+    {
+      provide: DESKTOP_CONFIG,
+      useValue: {
+        zIndex: { ...DEFAULT_DESKTOP_CONFIG.zIndex, ...config.zIndex },
+        motion: config.motion ?? DEFAULT_DESKTOP_CONFIG.motion,
+      } satisfies DesktopConfig,
+    },
+  ];
+  if (config.labels) providers.push({ provide: DESKTOP_LABELS, useValue: desktopLabels(config.labels) });
+  return providers;
 }

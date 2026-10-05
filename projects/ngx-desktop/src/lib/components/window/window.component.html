@@ -26,7 +26,7 @@
         <button
           type="button"
           class="omni-window-button"
-          [attr.aria-label]="minimized() ? 'Restore' : 'Minimize'"
+          [attr.aria-label]="minimized() ? labels().restore : labels().minimize"
           (click)="toggleMinimize()"
         >
           <omni-minimize-icon [restore]="collapsed()" />
@@ -36,7 +36,7 @@
         <button
           type="button"
           class="omni-window-button"
-          [attr.aria-label]="maximized() ? 'Restore size' : 'Maximize'"
+          [attr.aria-label]="maximized() ? labels().restoreSize : labels().maximize"
           (click)="toggleMaximize()"
         >
           <omni-maximize-icon [restore]="maximized()" />
@@ -46,14 +46,14 @@
         <button
           type="button"
           class="omni-window-button"
-          [attr.aria-label]="fullScreen() ? 'Exit full screen' : 'Full screen'"
+          [attr.aria-label]="fullScreen() ? labels().exitFullScreen : labels().fullScreen"
           (click)="toggleFullScreen()"
         >
           <omni-full-screen-icon />
         </button>
       }
       @if (closable()) {
-        <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
+        <button type="button" class="omni-window-button" [attr.aria-label]="labels().close" (click)="close()">
           <omni-close-icon />
         </button>
       }
@@ -71,7 +71,12 @@
     <omni-move-icon />
   </div>
   @if (closable()) {
-    <button type="button" class="omni-window-button omni-widget-close" aria-label="Close" (click)="close()">
+    <button
+      type="button"
+      class="omni-window-button omni-widget-close"
+      [attr.aria-label]="labels().close"
+      (click)="close()"
+    >
       <omni-close-icon />
     </button>
   }

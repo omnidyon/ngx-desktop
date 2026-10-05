@@ -8,7 +8,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 - [x] 2. Motion: honour `prefers-reduced-motion`, with `provideDesktopConfig({ motion })` to override; minimized
       windows fly into their dock tab; scaling happens in place
 - [x] 3. Maximum size: `maxWidth` / `maxHeight` inputs (px or %), respected by resize, zones, layouts and `[(rect)]`
-- [ ] 4. Translatable labels via `provideDesktopConfig({ labels })`
+- [x] 4. Translatable labels via `provideDesktopConfig({ labels })` (plain object or a signal for runtime switching)
 
 ## B. Accessibility
 

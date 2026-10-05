@@ -26,6 +26,7 @@ import {
   untracked,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
+import { DESKTOP_LABELS } from '../../config/desktop-labels';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
 import { fitWithoutOverlap, limitResize } from '../../geometry/fit';
@@ -118,6 +119,7 @@ export class WindowComponent implements DesktopWindow {
   private readonly element: HTMLElement = inject(ElementRef).nativeElement;
   private readonly document = inject(DOCUMENT);
   private readonly config = inject(DESKTOP_CONFIG);
+  protected readonly labels = inject(DESKTOP_LABELS);
   private readonly storage = inject(DESKTOP_LAYOUT_STORAGE);
   private readonly forgotten = inject(ForgottenLayouts);
   private readonly desktop = inject(DesktopService, { optional: true });

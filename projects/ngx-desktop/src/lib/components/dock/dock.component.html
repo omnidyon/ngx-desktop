@@ -5,7 +5,7 @@
     [attr.data-window-id]="window.id"
     [class.omni-dock-tab-minimized]="window.minimized()"
     [class.omni-dock-tab-focused]="desktop.focusedId() === window.id && !window.minimized()"
-    [attr.aria-label]="window.header() || 'Window'"
+    [attr.aria-label]="window.header() || labels().untitledWindow"
     [attr.title]="window.header() || null"
     (click)="activate(window)"
   >

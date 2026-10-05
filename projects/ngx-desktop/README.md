@@ -238,6 +238,38 @@ The animation length is `--omni-window-transition-duration` (see _Styling_).
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Labels and translation</b></summary>
+
+The window buttons, the dock and its tabs have texts that screen readers announce. They are English by default and can
+be translated; labels you leave out stay English:
+
+```ts
+bootstrapApplication(App, {
+  providers: [provideDesktopConfig({ labels: { close: 'Schließen', minimize: 'Minimieren', dock: 'Fenster' } })],
+});
+```
+
+To switch language at runtime, pass a signal (for example a `computed` over your translation service):
+
+```ts
+const labels = computed(() => ({ close: translate('close'), minimize: translate('minimize') }));
+provideDesktopConfig({ labels });
+```
+
+| Label            | Default            | Used for                                     |
+| ---------------- | ------------------ | -------------------------------------------- |
+| `close`          | `Close`            | close button of windows, widgets and dialogs |
+| `minimize`       | `Minimize`         | minimize button                              |
+| `restore`        | `Restore`          | minimize button while minimized              |
+| `maximize`       | `Maximize`         | maximize button                              |
+| `restoreSize`    | `Restore size`     | maximize button while maximized              |
+| `fullScreen`     | `Full screen`      | full-screen button                           |
+| `exitFullScreen` | `Exit full screen` | full-screen button while full screen         |
+| `dock`           | `Windows`          | the dock toolbar                             |
+| `untitledWindow` | `Window`           | dock tab of a window without a `header`      |
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Styling</b></summary>
 
 When installed, windows, dialogs and the dock come in a default style. You can restyle them by defining any of the

@@ -22,7 +22,7 @@
       </span>
       @if (closable()) {
         <div class="omni-window-buttons">
-          <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
+          <button type="button" class="omni-window-button" [attr.aria-label]="labels().close" (click)="close()">
             <omni-close-icon />
           </button>
         </div>

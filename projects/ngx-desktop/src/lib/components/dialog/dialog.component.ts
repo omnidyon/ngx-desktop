@@ -24,6 +24,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
+import { DESKTOP_LABELS } from '../../config/desktop-labels';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
 import { DesktopTheme } from '../../models/types';
 import { uniqueId } from '../../utils/unique-id';
@@ -78,6 +79,7 @@ export class DialogComponent {
   private readonly stack = inject(DialogStack);
   private readonly userHasInteracted = inject(USER_HAS_INTERACTED);
   private readonly config = inject(DESKTOP_CONFIG);
+  protected readonly labels = inject(DESKTOP_LABELS);
   protected readonly zIndex = this.config.zIndex.dialog;
   protected readonly titleId = uniqueId('omni-dialog-title-');
 

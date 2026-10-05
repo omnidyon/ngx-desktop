@@ -8,6 +8,7 @@
 
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
+import { DESKTOP_LABELS } from '../../config/desktop-labels';
 import { DesktopWindow } from '../../models/desktop-window';
 import { DesktopService } from '../../services/desktop.service';
 
@@ -24,7 +25,7 @@ import { DesktopService } from '../../services/desktop.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'toolbar',
-    'aria-label': 'Windows',
+    '[attr.aria-label]': 'labels().dock',
     '[class]': 'hostClasses()',
     '[style.z-index]': 'zIndex',
   },
@@ -32,6 +33,7 @@ import { DesktopService } from '../../services/desktop.service';
 export class DockComponent {
   protected readonly desktop = inject(DesktopService);
   protected readonly zIndex = inject(DESKTOP_CONFIG).zIndex.dock;
+  protected readonly labels = inject(DESKTOP_LABELS);
 
   readonly position = input<'top' | 'bottom'>('bottom');
 
