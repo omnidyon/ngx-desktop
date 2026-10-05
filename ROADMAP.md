@@ -18,7 +18,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 
 ## C. Performance
 
-- [ ] 8. Dragging outside Angular's zone, batched per animation frame
+- [x] 8. Dragging outside Angular's zone, batched per animation frame (pending move flushed on release)
 
 ## D. Features
 

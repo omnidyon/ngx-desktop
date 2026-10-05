@@ -4,6 +4,9 @@ import { Length } from '../../geometry/length';
 import { Rect, WindowPosition } from '../../models/types';
 import { WindowComponent } from './window.component';
 
+/** Moves are emitted once per animation frame. */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 @Component({
   imports: [WindowComponent],
   template: `
@@ -117,6 +120,7 @@ describe('Window positioning', () => {
       target.dispatchEvent(new PointerEvent(type, { bubbles: true, clientX: x, clientY: y, pointerId: 1, button: 0 }));
     pointer(header, 'pointerdown', 50, 10);
     pointer(document, 'pointermove', 80, 30);
+    await nextFrame();
     await fixture.whenStable();
     expect(host.rect()).toEqual({ x: 30, y: 20, width: 200, height: 100 });
     pointer(document, 'pointerup', 80, 30);

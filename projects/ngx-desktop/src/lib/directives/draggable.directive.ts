@@ -14,6 +14,7 @@ import {
   ElementRef,
   inject,
   input,
+  NgZone,
   output,
   signal,
 } from '@angular/core';
@@ -42,6 +43,10 @@ const NO_DRAG_SELECTOR = 'button, a, input, textarea, select, [contenteditable],
  * Turns the host element into a drag handle using Pointer Events, so mouse, pen and touch all work.
  * It only reports pointer movement; what moves (a window, an edge) is decided by the consumer.
  *
+ * The pointer is followed outside Angular's zone, and `dragMove` is emitted at most once per animation
+ * frame (with the latest position), so fast mice do not run change detection for every event. A move
+ * still waiting for its frame is emitted before `dragEnd`.
+ *
  * @usageNotes
  * <div omniDraggable (dragMove)="onMove($event)" (dragEnd)="onEnd($event)"></div>
  * <div [omniDraggable]="false"></div>   -- disabled
@@ -57,6 +62,7 @@ const NO_DRAG_SELECTOR = 'button, a, input, textarea, select, [contenteditable],
 export class DraggableDirective {
   private readonly element: HTMLElement = inject(ElementRef).nativeElement;
   private readonly document = inject(DOCUMENT);
+  private readonly zone = inject(NgZone);
 
   /** Whether dragging is enabled. */
   readonly omniDraggable = input(true, { transform: booleanAttribute });
@@ -94,21 +100,48 @@ export class DraggableDirective {
     this.element.setPointerCapture?.(pointerId);
     this.active.set(true);
 
+    const view = this.document.defaultView;
+    /** The latest move that has not been emitted yet, and the frame that will emit it. */
+    let pending: DragPointerEvent | null = null;
+    let frame: number | null = null;
+    const flush = (): void => {
+      frame = null;
+      const move = pending;
+      pending = null;
+      if (move) this.zone.run(() => this.dragMove.emit(move));
+    };
+
     const onMove = (e: PointerEvent): void => {
       if (e.pointerId !== pointerId) return;
       e.preventDefault();
-      this.dragMove.emit(toDrag(e));
+      pending = toDrag(e);
+      if (frame !== null) return;
+      if (view?.requestAnimationFrame) {
+        frame = view.requestAnimationFrame(flush);
+      } else {
+        flush();
+      }
     };
     const onEnd = (e: PointerEvent): void => {
       if (e.pointerId !== pointerId) return;
-      this.cleanup?.();
-      this.dragEnd.emit(toDrag(e));
+      // The last position counts, even if its frame has not come yet.
+      if (frame !== null) view?.cancelAnimationFrame(frame);
+      flush();
+      this.zone.run(() => {
+        this.cleanup?.();
+        this.dragEnd.emit(toDrag(e));
+      });
     };
 
-    this.document.addEventListener('pointermove', onMove);
-    this.document.addEventListener('pointerup', onEnd);
-    this.document.addEventListener('pointercancel', onEnd);
+    this.zone.runOutsideAngular(() => {
+      this.document.addEventListener('pointermove', onMove);
+      this.document.addEventListener('pointerup', onEnd);
+      this.document.addEventListener('pointercancel', onEnd);
+    });
     this.cleanup = () => {
+      if (frame !== null) view?.cancelAnimationFrame(frame);
+      frame = null;
+      pending = null;
       this.document.removeEventListener('pointermove', onMove);
       this.document.removeEventListener('pointerup', onEnd);
       this.document.removeEventListener('pointercancel', onEnd);

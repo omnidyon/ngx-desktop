@@ -6,6 +6,9 @@ import { DesktopComponent } from '../desktop/desktop.component';
 import { SnapZone } from '../../models/types';
 import { WindowComponent } from './window.component';
 
+/** Moves are emitted once per animation frame. */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 @Component({
   imports: [DesktopComponent, WindowComponent],
   template: `
@@ -77,6 +80,7 @@ describe('Window snapping inside a desktop', () => {
     it('shows a preview while the pointer is at an edge', async () => {
       pointer(header(), 'pointerdown', 100, 10);
       pointer(document, 'pointermove', 5, 300);
+      await nextFrame();
       await stable();
       const shown = preview();
       expect(shown).not.toBeNull();
@@ -85,6 +89,7 @@ describe('Window snapping inside a desktop', () => {
       expect(shown!.style.zIndex).toBe(element.querySelector<HTMLElement>('.a')!.style.zIndex);
 
       pointer(document, 'pointermove', 300, 300);
+      await nextFrame();
       await stable();
       expect(preview()).toBeNull();
       pointer(document, 'pointerup', 300, 300);
@@ -102,6 +107,7 @@ describe('Window snapping inside a desktop', () => {
       await stable();
       pointer(header(), 'pointerdown', 100, 10);
       pointer(document, 'pointermove', 5, 300);
+      await nextFrame();
       await stable();
       expect(preview()!.style.width).toBe(`${Math.round((800 - 36) / 2)}px`);
       pointer(document, 'pointerup', 5, 300);

@@ -4,6 +4,9 @@ import { Rect, SnapZone } from '../../models/types';
 import { DesktopComponent } from '../desktop/desktop.component';
 import { WindowComponent } from './window.component';
 
+/** Moves are emitted once per animation frame. */
+const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
 @Component({
   imports: [DesktopComponent, WindowComponent],
   template: `
@@ -63,6 +66,7 @@ describe('Window placement without overlap', () => {
     const header = element.querySelector(`${selector} .omni-window-header`)!;
     pointer(header, 'pointerdown', 100, 10);
     pointer(document, 'pointermove', 100 + dx, 10 + dy);
+    await nextFrame();
     await stable();
     during?.();
     pointer(document, 'pointerup', 100 + dx, 10 + dy);
