@@ -5,7 +5,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 ## A. Polish
 
 - [x] 1. Title ellipsis: long titles end in "…" (window and dialog); the full title is the tooltip
-- [ ] 2. Reduced motion: honour `prefers-reduced-motion`
+- [x] 2. Reduced motion: honour `prefers-reduced-motion` (no window, dialog or snap-preview animations)
 - [ ] 3. Maximum size: `maxWidth` / `maxHeight` inputs
 - [ ] 4. Translatable labels via `provideDesktopConfig({ labels })`
 

@@ -236,3 +236,15 @@ $corner: 14px;
     scale: 0.95;
   }
 }
+
+// Less motion when the system asks for it: windows open, close, minimize and restore without animating.
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --omni-window-transition-duration: 0s;
+  }
+
+  .omni-widget-grip,
+  .omni-widget-close {
+    transition: none;
+  }
+}

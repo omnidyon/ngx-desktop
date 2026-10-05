@@ -45,3 +45,14 @@
     scale: 0.9;
   }
 }
+
+// Less motion when the system asks for it: the snap preview jumps instead of sliding.
+@media (prefers-reduced-motion: reduce) {
+  .omni-snap-preview {
+    transition: none;
+  }
+
+  .omni-snap-preview-in {
+    animation: none;
+  }
+}

@@ -78,3 +78,10 @@
     scale: 0.95;
   }
 }
+
+// Less motion when the system asks for it: the dialog and its overlay appear and disappear at once.
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    --omni-window-transition-duration: 0s;
+  }
+}
