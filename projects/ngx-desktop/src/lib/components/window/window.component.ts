@@ -62,6 +62,8 @@ const RESIZE_DIRECTIONS: readonly ResizeDirection[] = ['n', 's', 'e', 'w', 'ne',
 
 /** Stacking counter for windows that are not inside a desktop. */
 let standaloneTop = 0;
+/** The standalone window raised last. */
+let standaloneFrontId: string | null = null;
 
 /**
  * @publicApi
@@ -111,6 +113,8 @@ let standaloneTop = 0;
     '[style.height.px]': 'styleHeight()',
     '[style.z-index]': 'zIndex()',
     '(pointerdown)': 'focus()',
+    // Keyboard focus moving into the window (Tab, a screen reader, element.focus()) raises it too.
+    '(focusin)': 'focus()',
     '(window:resize)': 'onViewportResize()',
     '(document:fullscreenchange)': 'onFullScreenChange()',
   },
@@ -342,6 +346,7 @@ export class WindowComponent implements DesktopWindow {
       this.flushSave();
       this.desktop?.unregister(this.id);
       unblockBodyScroll(this.document, this.id);
+      if (standaloneFrontId === this.id) standaloneFrontId = null;
     });
   }
 
@@ -350,7 +355,10 @@ export class WindowComponent implements DesktopWindow {
     if (this.desktop) {
       this.desktop.focus(this.id);
     } else {
-      this.standaloneZ.set(this.config.zIndex.window + ++standaloneTop);
+      if (standaloneFrontId !== this.id) {
+        standaloneFrontId = this.id;
+        this.standaloneZ.set(this.config.zIndex.window + ++standaloneTop);
+      }
     }
   }
 

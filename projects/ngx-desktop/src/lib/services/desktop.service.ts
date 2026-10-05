@@ -174,7 +174,9 @@ export class DesktopService {
 
   /** Brings a window to the top of the stack. */
   focus(id: string): void {
-    this._stack.update((stack) => (stack.includes(id) ? [...stack.filter((s) => s !== id), id] : stack));
+    this._stack.update((stack) =>
+      stack.includes(id) && stack.at(-1) !== id ? [...stack.filter((s) => s !== id), id] : stack
+    );
   }
 
   /** Reactive z-index of a window; read it inside a computed or template. */

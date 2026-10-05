@@ -1,4 +1,4 @@
-import { signal } from '@angular/core';
+import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideDesktopConfig } from '../config/desktop-config';
 import { DesktopWindow } from '../models/desktop-window';
@@ -51,6 +51,15 @@ describe('DesktopService', () => {
     expect(service.focusedId()).toBe('a');
     expect([service.zIndex('b'), service.zIndex('c'), service.zIndex('a')]).toEqual([100, 101, 102]);
     expect(service.windows().map((w) => w.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('leaves the stack alone when the window is already on top', () => {
+    service.register(fakeWindow('a'));
+    service.register(fakeWindow('b'));
+    const zIndexes = computed(() => [service.zIndex('a'), service.zIndex('b')]);
+    const before = zIndexes();
+    service.focus('b');
+    expect(zIndexes()).toBe(before);
   });
 
   it('ignores focus for unknown ids', () => {

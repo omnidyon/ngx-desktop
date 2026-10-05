@@ -12,7 +12,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 
 ## B. Accessibility
 
-- [ ] 5. Keyboard focus brings a window to the front
+- [x] 5. Keyboard focus brings a window to the front
 - [ ] 6. Keyboard move and resize
 - [ ] 7. Dock arrow-key navigation
 
