@@ -1,63 +1,81 @@
-<div
-  class="omni-window-header"
-  [class.omni-window-header-draggable]="canDrag()"
-  [omniDraggable]="canDrag()"
-  (dragStart)="onDragStart()"
-  (dragMove)="onDragMove($event)"
-  (dragEnd)="onDragEnd()"
-  (dblclick)="onHeaderDoubleClick($event)"
->
-  <span class="omni-window-title" [hidden]="collapsed()">
-    <ng-content select="[omniWindowHeader]" />
-    @if (!customHeader()) {
-      @if (icon(); as src) {
-        <img class="omni-window-icon" [src]="src" alt="" />
+@if (!widget()) {
+  <div
+    class="omni-window-header"
+    [class.omni-window-header-draggable]="canDrag()"
+    [omniDraggable]="canDrag()"
+    (dragStart)="onDragStart()"
+    (dragMove)="onDragMove($event)"
+    (dragEnd)="onDragEnd()"
+    (dblclick)="onHeaderDoubleClick($event)"
+  >
+    <span class="omni-window-title" [hidden]="collapsed()">
+      <ng-content select="[omniWindowHeader]" />
+      @if (!customHeader()) {
+        @if (icon(); as src) {
+          <img class="omni-window-icon" [src]="src" alt="" />
+        }
+        <span class="omni-window-header-text">{{ header() }}</span>
       }
-      <span class="omni-window-header-text">{{ header() }}</span>
+    </span>
+    @if (collapsed()) {
+      <span class="omni-window-title omni-window-move-icon"><omni-move-icon /></span>
     }
-  </span>
-  @if (collapsed()) {
-    <span class="omni-window-title omni-window-move-icon"><omni-move-icon /></span>
-  }
 
-  <div class="omni-window-buttons">
-    @if (minimizable() && !fullScreen()) {
-      <button
-        type="button"
-        class="omni-window-button"
-        [attr.aria-label]="minimized() ? 'Restore' : 'Minimize'"
-        (click)="toggleMinimize()"
-      >
-        <omni-minimize-icon [restore]="collapsed()" />
-      </button>
-    }
-    @if (maximizable() && !minimized() && !fullScreen()) {
-      <button
-        type="button"
-        class="omni-window-button"
-        [attr.aria-label]="maximized() ? 'Restore size' : 'Maximize'"
-        (click)="toggleMaximize()"
-      >
-        <omni-maximize-icon [restore]="maximized()" />
-      </button>
-    }
-    @if (fullScreenable() && !minimized()) {
-      <button
-        type="button"
-        class="omni-window-button"
-        [attr.aria-label]="fullScreen() ? 'Exit full screen' : 'Full screen'"
-        (click)="toggleFullScreen()"
-      >
-        <omni-full-screen-icon />
-      </button>
-    }
-    @if (closable()) {
-      <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
-        <omni-close-icon />
-      </button>
-    }
+    <div class="omni-window-buttons">
+      @if (minimizable() && !fullScreen()) {
+        <button
+          type="button"
+          class="omni-window-button"
+          [attr.aria-label]="minimized() ? 'Restore' : 'Minimize'"
+          (click)="toggleMinimize()"
+        >
+          <omni-minimize-icon [restore]="collapsed()" />
+        </button>
+      }
+      @if (maximizable() && !minimized() && !fullScreen()) {
+        <button
+          type="button"
+          class="omni-window-button"
+          [attr.aria-label]="maximized() ? 'Restore size' : 'Maximize'"
+          (click)="toggleMaximize()"
+        >
+          <omni-maximize-icon [restore]="maximized()" />
+        </button>
+      }
+      @if (fullScreenable() && !minimized()) {
+        <button
+          type="button"
+          class="omni-window-button"
+          [attr.aria-label]="fullScreen() ? 'Exit full screen' : 'Full screen'"
+          (click)="toggleFullScreen()"
+        >
+          <omni-full-screen-icon />
+        </button>
+      }
+      @if (closable()) {
+        <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
+          <omni-close-icon />
+        </button>
+      }
+    </div>
   </div>
-</div>
+} @else {
+  <div
+    class="omni-widget-grip"
+    aria-hidden="true"
+    [omniDraggable]="canDrag()"
+    (dragStart)="onDragStart()"
+    (dragMove)="onDragMove($event)"
+    (dragEnd)="onDragEnd()"
+  >
+    <omni-move-icon />
+  </div>
+  @if (closable()) {
+    <button type="button" class="omni-window-button omni-widget-close" aria-label="Close" (click)="close()">
+      <omni-close-icon />
+    </button>
+  }
+}
 
 <div class="omni-window-content" [hidden]="collapsed()">
   <ng-content />

@@ -88,6 +88,19 @@ describe('App', () => {
     expect(windowLabels()).not.toContain('Window 4');
   });
 
+  it('adds widgets without a title bar or dock tab, and keeps them across a reload', async () => {
+    button('Add widget').click();
+    await settle();
+    const widget = Array.from(desktopWindows()).find((w) => w.getAttribute('aria-label') === 'Widget 4')!;
+    expect(widget.classList).toContain('omni-window-widget');
+    expect(widget.querySelector('.omni-window-header')).toBeNull();
+    expect(dockTabs()).toHaveLength(3);
+
+    fixture.destroy();
+    await render();
+    expect(windowLabels()).toContain('Widget 4');
+  });
+
   it('removes all added windows, and only enables that when there are some', async () => {
     expect(button('Remove added').disabled).toBe(true);
     button('Add window').click();

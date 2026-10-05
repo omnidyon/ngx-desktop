@@ -20,6 +20,10 @@ interface DemoWindow {
   icon?: string;
   x: number;
   y: number;
+  /** Shown as a widget (no title bar) with a stat card. */
+  widget?: boolean;
+  /** The stat a widget shows. */
+  value?: number;
 }
 
 /** Icons the added windows cycle through; `undefined` gives a text-only dock tab. */
@@ -85,15 +89,18 @@ export class App {
     this.dock.set((event.target as HTMLSelectElement).value as DockPosition);
   }
 
-  protected addWindow(): void {
+  protected addWindow(widget = false): void {
     const number = this.nextWindow();
     const step = (number - 4) % CASCADE_LENGTH;
     const window: DemoWindow = {
       number,
-      title: `Window ${number}`,
-      icon: DEMO_ICONS[(number - 4) % DEMO_ICONS.length],
+      title: widget ? `Widget ${number}` : `Window ${number}`,
+      icon: widget ? undefined : DEMO_ICONS[(number - 4) % DEMO_ICONS.length],
       x: 40 + step * CASCADE_STEP,
       y: 40 + step * CASCADE_STEP,
+      widget,
+      // A stable, made-up figure for the stat card.
+      value: widget ? (number * 137) % 1000 : undefined,
     };
     this.added.open(window);
     this.record(`${window.title} added`);

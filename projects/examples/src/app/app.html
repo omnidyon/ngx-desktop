@@ -57,6 +57,7 @@
     <legend>Windows</legend>
     <div class="group-controls">
       <button type="button" class="btn btn-primary" (click)="addWindow()">Add window</button>
+      <button type="button" class="btn" (click)="addWindow(true)">Add widget</button>
       <button type="button" class="btn" [disabled]="added.windows().length === 0" (click)="removeAddedWindows()">
         Remove added
       </button>
@@ -161,14 +162,23 @@
         [icon]="window.data.icon"
         [x]="window.data.x"
         [y]="window.data.y"
-        [width]="320"
-        [height]="220"
+        [width]="window.data.widget ? 240 : 320"
+        [height]="window.data.widget ? 140 : 220"
+        [widget]="!!window.data.widget"
         [persistKey]="window.key"
         (closed)="removeWindow(window)"
         (snapped)="record($event ? window.data.title + ' snapped: ' + $event : window.data.title + ' unsnapped')"
       >
-        <h2>{{ window.data.title }}</h2>
-        <p>Added at runtime and kept in a desktop session: it comes back after a reload. Closing it forgets it.</p>
+        @if (window.data.widget) {
+          <div class="stat-card">
+            <span class="stat-label">{{ window.data.title }}</span>
+            <span class="stat-value">{{ window.data.value }}</span>
+            <span class="stat-note">Widget: hover to move or close it.</span>
+          </div>
+        } @else {
+          <h2>{{ window.data.title }}</h2>
+          <p>Added at runtime and kept in a desktop session: it comes back after a reload. Closing it forgets it.</p>
+        }
       </omni-window>
     }
   </omni-desktop>

@@ -22,6 +22,8 @@ export interface DesktopWindow {
   readonly visible: Signal<boolean>;
   readonly minimized: Signal<boolean>;
   readonly maximized: Signal<boolean>;
+  /** Whether the window gets a dock tab (widgets do not). */
+  readonly dockable: Signal<boolean>;
   readonly rect: Signal<Rect | null>;
   restore(): void;
 }

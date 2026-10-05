@@ -94,7 +94,7 @@ let standaloneTop = 0;
   styleUrl: './window.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    role: 'dialog',
+    '[attr.role]': 'widget() ? "region" : "dialog"',
     '[attr.id]': 'id',
     '[attr.aria-label]': 'header() || null',
     '[attr.aria-hidden]': 'isAway() || null',
@@ -146,6 +146,12 @@ export class WindowComponent implements DesktopWindow {
   readonly keepInBounds = input(true, { transform: booleanAttribute });
   /** Whether this window snaps to zones and other windows (only inside a desktop with snapping enabled). */
   readonly snappable = input(true, { transform: booleanAttribute });
+  /**
+   * Widget mode: no title bar. The widget is moved by a grip that appears on hover (always visible on
+   * touch screens), keeps its resize handles, shows a small close button when `closable`, and gets
+   * no dock tab. Snapping, overlap rules, `persistKey` and sessions work as for windows.
+   */
+  readonly widget = input(false, { transform: booleanAttribute });
   /**
    * Saves the window's position, size, snapped zone and minimized/maximized/visible state under
    * this key (IndexedDB by default, see `provideDesktopLayoutStorage`) and restores it on load.
@@ -215,6 +221,9 @@ export class WindowComponent implements DesktopWindow {
     () => this.resizable() && !this.maximized() && !this.minimized() && !this.fullScreen()
   );
 
+  /** Widgets have no dock tab. */
+  readonly dockable = computed(() => !this.widget());
+
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
     return {
@@ -227,6 +236,7 @@ export class WindowComponent implements DesktopWindow {
       'omni-window-full-screen': this.fullScreen(),
       'omni-window-interacting': this.interacting(),
       'omni-window-focused': this.desktop?.focusedId() === this.id,
+      'omni-window-widget': this.widget(),
       [`omni-theme-${theme}`]: !!theme,
     };
   });

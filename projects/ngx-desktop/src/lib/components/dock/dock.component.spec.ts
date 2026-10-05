@@ -13,6 +13,7 @@ function fakeWindow(id: string, header: string, icon?: string): DesktopWindow {
     visible: signal(true),
     minimized: signal(false),
     maximized: signal(false),
+    dockable: signal(true),
     rect: signal<Rect | null>(null),
     restore: vi.fn(),
   };
@@ -45,6 +46,21 @@ describe('DockComponent', () => {
     expect(tabs).toHaveLength(2);
     expect(tabs[0].getAttribute('aria-label')).toBe('Alpha');
     expect(tabs[1].querySelector('img')?.getAttribute('src')).toBe('beta.svg');
+  });
+
+  it('leaves out windows that are not dockable (widgets)', async () => {
+    service.register(fakeWindow('a', 'Window'));
+    const widget = { ...fakeWindow('b', 'Widget'), dockable: signal(false) };
+    service.register(widget);
+    const element = await render();
+    const labels = Array.from(element.querySelectorAll('.omni-dock-tab')).map((tab) => tab.getAttribute('aria-label'));
+    expect(labels).toEqual(['Window']);
+  });
+
+  it('is hidden when only widgets are open', async () => {
+    service.register({ ...fakeWindow('b', 'Widget'), dockable: signal(false) });
+    const element = await render();
+    expect(element.classList).toContain('omni-dock-empty');
   });
 
   it('restores the window when its tab is clicked', async () => {

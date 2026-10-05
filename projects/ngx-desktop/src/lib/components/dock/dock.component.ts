@@ -38,7 +38,7 @@ export class DockComponent {
   protected readonly hostClasses = computed(() => ({
     'omni-dock': true,
     [`omni-dock-${this.position()}`]: true,
-    'omni-dock-empty': this.desktop.openWindows().length === 0,
+    'omni-dock-empty': this.desktop.dockWindows().length === 0,
   }));
 
   protected activate(window: DesktopWindow): void {

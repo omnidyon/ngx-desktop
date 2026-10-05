@@ -103,6 +103,58 @@
   height: var(--omni-window-button-size);
 }
 
+// ---------------------------------------------------------------- widget mode
+.omni-widget-grip,
+.omni-widget-close {
+  position: absolute;
+  top: 4px;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.omni-widget-grip {
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 16px;
+  padding: 1px 0;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--omni-widget-grip-background);
+  color: var(--omni-window-header-text-color);
+  cursor: move;
+}
+
+.omni-widget-close {
+  right: 8px;
+  padding: 3px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--omni-widget-grip-background);
+  color: var(--omni-window-header-text-color);
+}
+
+:host(.omni-window-widget:hover),
+:host(.omni-window-widget:focus-within),
+:host(.omni-window-widget.omni-window-interacting) {
+  .omni-widget-grip,
+  .omni-widget-close {
+    opacity: 1;
+  }
+}
+
+// No hover on touch screens: keep the controls visible.
+@media (hover: none) {
+  .omni-widget-grip,
+  .omni-widget-close {
+    opacity: 0.7;
+  }
+}
+
 // ---------------------------------------------------------------- resize handles
 $edge: 6px;
 $corner: 14px;

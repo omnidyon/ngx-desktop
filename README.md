@@ -57,6 +57,39 @@ are left as they are.
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Widget mode</b></summary>
+
+`<omni-window widget>` shows a window without its title bar, for dashboards and tiles:
+
+- A small **grip** appears at the top on hover (or keyboard focus) to move the widget; on touch screens it is always
+  visible. Dragging the content itself does not move the widget, so charts, maps and text selection keep working.
+- A small **close button** appears next to it when `closable` is on (the default); `[closable]="false"` hides it.
+- **Resize handles**, snapping, `snapPadding`, `allowOverlap`, `x` / `y` / `[(rect)]`, `persistKey`, sessions, themes
+  and scrollbars work as for windows.
+- Widgets get **no dock tab** and no minimize / maximize / full-screen buttons. A widget minimized from code has no tab to
+  come back from, so restore it from code too.
+- For assistive technology a widget is a labelled `region` (its `header` is the label) instead of a `dialog`.
+
+Normal windows and widgets can share a desktop. Building widgets from an API response:
+
+<!-- prettier-ignore -->
+```html
+<omni-desktop [snapPadding]="8">
+  @for (widget of widgets(); track widget.id) {
+    <omni-window widget [header]="widget.title" [persistKey]="'widget-' + widget.id" [x]="widget.x" [y]="widget.y">
+      @switch (widget.type) {
+        @case ('chart') { <app-chart [data]="widget.data" /> }
+        @case ('table') { <app-table [data]="widget.data" /> }
+      }
+    </omni-window>
+  }
+</omni-desktop>
+```
+
+The grip's background can be changed with `--omni-widget-grip-background`.
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Positioning</b></summary>
 
 Where a window starts, first match wins:
@@ -146,10 +179,11 @@ export class App {
 }
 ```
 
+<!-- prettier-ignore -->
 ```html
 <omni-desktop>
   @for (doc of docs.windows(); track doc.key) {
-  <omni-window [header]="doc.data.title" [persistKey]="doc.key" (closed)="docs.close(doc.key)">…</omni-window>
+    <omni-window [header]="doc.data.title" [persistKey]="doc.key" (closed)="docs.close(doc.key)">…</omni-window>
   }
 </omni-desktop>
 ```
@@ -201,6 +235,7 @@ values below on the component itself or on any ancestor element (for example `om
 | --omni-window-scrollbar-thumb       | scrollbar thumb colour                                   | rgba(200, 193, 193, 0.35) |
 | --omni-window-scrollbar-thumb-hover | scrollbar thumb colour on hover                          | rgba(200, 193, 193, 0.6)  |
 | --omni-window-scrollbar-track       | scrollbar track colour                                   | transparent               |
+| --omni-widget-grip-background       | background of the widget grip and close button           | rgba(0, 0, 0, 0.35)       |
 | --omni-dialog-background            | dialog background                                        | rgb(86, 60, 86)           |
 | --omni-dialog-overlay-color         | modal overlay color                                      | rgba(0, 0, 0, 0.4)        |
 | --omni-dialog-width                 | dialog width                                             | 40%                       |
