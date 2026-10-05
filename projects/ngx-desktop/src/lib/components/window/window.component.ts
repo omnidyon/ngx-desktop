@@ -26,10 +26,10 @@ import {
   untracked,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
-import { DESKTOP_LABELS } from '../../config/desktop-labels';
+import { DESKTOP_LABELS, formatLabel } from '../../config/desktop-labels';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
-import { fitWithoutOverlap, limitResize } from '../../geometry/fit';
+import { fitWithoutOverlap, limitMove, limitResize } from '../../geometry/fit';
 import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
 import { placeRect } from '../../geometry/placement';
@@ -58,7 +58,20 @@ export const DEFAULT_MIN_HEIGHT = 65;
 /** @internal How long a window waits after its last change before saving its layout. */
 export const LAYOUT_SAVE_DELAY = 300;
 
+/** @internal Pixels an arrow key moves or resizes a window (Alt+arrow: {@link KEYBOARD_FINE_STEP}). */
+export const KEYBOARD_STEP = 10;
+/** @internal */
+export const KEYBOARD_FINE_STEP = 1;
+/** @internal How long keyboard changes settle before they are announced (a held key repeats quickly). */
+export const ANNOUNCE_DELAY = 250;
+
 const RESIZE_DIRECTIONS: readonly ResizeDirection[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+const ARROW_KEYS: Readonly<Record<string, { x: number; y: number }>> = {
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: -1 },
+  ArrowDown: { x: 0, y: 1 },
+};
 
 /** Stacking counter for windows that are not inside a desktop. */
 let standaloneTop = 0;
@@ -202,6 +215,10 @@ export class WindowComponent implements DesktopWindow {
   protected readonly interacting = signal(false);
   protected readonly customHeader = contentChild(WindowHeaderDirective);
   protected readonly customFooter = contentChild(WindowFooterDirective);
+  /** Id of the keyboard help text the title bar (or widget grip) points to. */
+  protected readonly keyboardHelpId = `${this.id}-keys`;
+  /** Text of the polite live region: what the last keyboard move, resize or snap did. */
+  protected readonly announcement = signal('');
 
   /** Placed (and, with a `persistKey`, restored); the window stays hidden until then. */
   private readonly ready = signal(false);
@@ -229,6 +246,7 @@ export class WindowComponent implements DesktopWindow {
   /** A save that is waiting for the debounce delay; written immediately if the window is destroyed. */
   private pendingSave: { key: string; layout: WindowLayout } | null = null;
   private destroyed = false;
+  private announceTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Collapsed to a title bar (minimized while not inside a desktop). */
   protected readonly collapsed = computed(() => this.minimized() && !this.desktop);
@@ -347,6 +365,7 @@ export class WindowComponent implements DesktopWindow {
       this.desktop?.unregister(this.id);
       unblockBodyScroll(this.document, this.id);
       if (standaloneFrontId === this.id) standaloneFrontId = null;
+      clearTimeout(this.announceTimer);
     });
   }
 
@@ -413,6 +432,26 @@ export class WindowComponent implements DesktopWindow {
     // Double-clicking a header button (e.g. Close) is two clicks on that button, not a maximize.
     if ((event.target as Element | null)?.closest?.('.omni-window-buttons')) return;
     if (!this.collapsed()) this.toggleMaximize();
+  }
+
+  /**
+   * Keys on the focused title bar (or widget grip): arrows move, Shift+arrows resize from the right/bottom
+   * edge, Ctrl+arrows snap (left/right half, maximize, and restore or minimize). Alt makes steps 1px.
+   */
+  protected onHeaderKeydown(event: KeyboardEvent): void {
+    // Keys in header buttons or in a custom header's own controls are theirs.
+    if (event.target !== event.currentTarget) return;
+    const arrow = ARROW_KEYS[event.key];
+    if (!arrow) return;
+    event.preventDefault();
+    const step = event.altKey ? KEYBOARD_FINE_STEP : KEYBOARD_STEP;
+    if (event.ctrlKey || event.metaKey) {
+      this.keyboardSnap(event.key);
+    } else if (event.shiftKey) {
+      this.keyboardResize(arrow.x * step, arrow.y * step);
+    } else {
+      this.keyboardMove(arrow.x * step, arrow.y * step);
+    }
   }
 
   protected onDragStart(): void {
@@ -534,6 +573,132 @@ export class WindowComponent implements DesktopWindow {
     if (fullScreen === this.fullScreen()) return;
     this.fullScreen.set(fullScreen);
     this.fullScreenChange.emit(fullScreen);
+  }
+
+  private keyboardMove(dx: number, dy: number): void {
+    const start = this.rect();
+    if (!start || !this.canDrag() || this.isAway()) return;
+    this.leaveZone(true);
+    const bounds = this.bounds();
+    let next = moveRect(start, dx, dy, this.keepInBounds() ? this.visibleBounds(start) : undefined);
+
+    const desktop = this.snappingDesktop();
+    if (desktop?.settings.snapToWindows()) {
+      const { snapThreshold, snapPadding } = desktop.settings;
+      const pulled = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold(), snapPadding());
+      next = { ...next, x: along(next.x, pulled.x, dx), y: along(next.y, pulled.y, dy) };
+      if (this.keepInBounds()) next = clampRect(next, bounds);
+    }
+    const blocking = this.overlapDesktop();
+    if (blocking) {
+      next = limitMove(start, next.x - start.x, next.y - start.y, blocking.otherRects(this.id), this.snapPadding());
+    }
+
+    this.setRect(next);
+    this.dragEnd.emit(next);
+    this.announce(this.labels().announceMoved, { x: Math.round(next.x - bounds.x), y: Math.round(next.y - bounds.y) });
+  }
+
+  private keyboardResize(dx: number, dy: number): void {
+    const start = this.rect();
+    if (!start || !this.canResize() || this.isAway()) return;
+    // Like a resize by hand: the window keeps its new size and is no longer in its zone.
+    this.leaveZone(false);
+    const direction: ResizeDirection = dx !== 0 ? 'e' : 's';
+    const bounds = this.bounds();
+    const minSize = this.minSize();
+    const maxSize = this.maxSize(bounds);
+    this.resizeStart.emit(start);
+    let next = resizeRect(start, direction, dx, dy, minSize, this.keepInBounds() ? bounds : undefined, maxSize);
+
+    const desktop = this.snappingDesktop();
+    if (desktop?.settings.snapToWindows()) {
+      const others = desktop.otherRects(this.id);
+      const { snapThreshold, snapPadding } = desktop.settings;
+      const pulled = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding(), maxSize);
+      const right = along(next.x + next.width, pulled.x + pulled.width, dx);
+      const bottom = along(next.y + next.height, pulled.y + pulled.height, dy);
+      next = { ...next, width: right - next.x, height: bottom - next.y };
+    }
+    const blocking = this.overlapDesktop();
+    if (blocking) next = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
+
+    this.setRect(next);
+    this.resizeEnd.emit(next);
+    this.announce(this.labels().announceResized, { width: Math.round(next.width), height: Math.round(next.height) });
+  }
+
+  /** Ctrl+Left/Right: snap to that half. Ctrl+Up: maximize. Ctrl+Down: restore, or minimize when not snapped. */
+  private keyboardSnap(key: string): void {
+    const start = this.rect();
+    if (!start || this.isAway()) return;
+    const labels = this.labels();
+
+    if (key === 'ArrowUp') {
+      if (this.maximized() || !this.maximizable() || this.minimized()) return;
+      this.maximized.set(true);
+      this.announce(labels.announceMaximized);
+    } else if (key === 'ArrowDown') {
+      if (this.maximized()) {
+        this.maximized.set(false);
+        this.announce(labels.announceRestored);
+      } else if (this.snapZone() || this.restoreSize()) {
+        this.restoreFromZone(start);
+        this.announce(labels.announceRestored);
+      } else if (this.minimizable() && !this.minimized()) {
+        this.toggleMinimize();
+        // Hidden in the dock now: keep the keyboard user next to it.
+        this.desktop?.dockTab(this.id)?.focus();
+      }
+    } else {
+      const zone: SnapZone = key === 'ArrowLeft' ? 'left' : 'right';
+      if (!this.snappingDesktop()?.settings.snapToZones() || !this.draggable() || this.fullScreen()) return;
+      if (this.snapToZone(zone, start)) {
+        this.announce(zone === 'left' ? labels.announceSnappedLeft : labels.announceSnappedRight);
+      }
+    }
+  }
+
+  /** Snaps into a zone from the keyboard; `false` when there is no room for it (overlap not allowed). */
+  private snapToZone(zone: SnapZone, start: Rect): boolean {
+    const target = this.zoneTarget(zone, this.bounds());
+    const landing = this.overlapDesktop() ? this.fit(target) : target;
+    if (!landing) return false;
+    // A window moved from one half to the other keeps the size from before its first snap.
+    const restore = this.restoreSize() ?? { width: start.width, height: start.height };
+    // Only a window that got its whole zone counts as snapped (and follows the zone on resizes).
+    const snappedZone = sameRect(landing, target) ? zone : null;
+    this.maximized.set(false);
+    this.restoreSize.set(restore);
+    this.snapZone.set(snappedZone);
+    this.setRect(landing);
+    this.snapped.emit(snappedZone);
+    return true;
+  }
+
+  /** Back to the size from before the window was snapped, keeping its top-left corner. */
+  private restoreFromZone(start: Rect): void {
+    const size = this.restoreSize();
+    this.leaveZone(true);
+    if (!size) return;
+    const bounds = this.bounds();
+    const limited = this.limit({ ...start, ...size }, bounds);
+    this.setRect(this.arrange(this.keepInBounds() ? clampRect(limited, bounds) : limited));
+  }
+
+  /** Forgets the snapped zone (a window moved or resized from the keyboard is no longer in it). */
+  private leaveZone(emit: boolean): void {
+    const wasSnapped = !!this.snapZone() || !!this.restoreSize();
+    this.snapZone.set(null);
+    this.restoreSize.set(null);
+    if (emit && wasSnapped) this.snapped.emit(null);
+  }
+
+  /** Tells screen readers what a keyboard action did, once a held key has settled. */
+  private announce(label: string, values: Readonly<Record<string, string | number>> = {}): void {
+    clearTimeout(this.announceTimer);
+    const text = formatLabel(label, { name: this.header() || this.labels().untitledWindow, ...values });
+    this.announceTimer = setTimeout(() => this.announcement.set(text), ANNOUNCE_DELAY);
   }
 
   /** Places the window: from its saved layout when there is one, otherwise from its inputs. */
@@ -791,10 +956,10 @@ export class WindowComponent implements DesktopWindow {
   }
 
   /** Bounds for the window's current visual size (a collapsed window is smaller than its rect). */
-  private visibleBounds(): Rect {
+  private visibleBounds(start = this.interactionStart): Rect {
     const bounds = this.bounds();
-    if (!this.collapsed() || !this.interactionStart) return bounds;
-    const { width, height } = this.interactionStart;
+    if (!this.collapsed() || !start) return bounds;
+    const { width, height } = start;
     return {
       ...bounds,
       width: bounds.width + width - this.element.offsetWidth,
@@ -815,6 +980,14 @@ export class WindowComponent implements DesktopWindow {
     const rect = this.rect();
     return rect && !this.maximized() && !this.collapsed() ? rect[dimension] : null;
   }
+}
+
+/**
+ * A magnetic pull is taken from the keyboard only when it goes further the way the key moves the edge;
+ * otherwise a window next to an edge could never step away from it.
+ */
+function along(plain: number, pulled: number, delta: number): number {
+  return delta !== 0 && Math.sign(pulled - plain) === Math.sign(delta) ? pulled : plain;
 }
 
 function sameRect(a: Rect, b: Rect): boolean {

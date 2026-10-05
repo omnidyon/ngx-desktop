@@ -4,7 +4,7 @@ import { DesktopComponent } from '../components/desktop/desktop.component';
 import { DialogComponent } from '../components/dialog/dialog.component';
 import { WindowComponent } from '../components/window/window.component';
 import { provideDesktopConfig } from './desktop-config';
-import { DEFAULT_DESKTOP_LABELS, DESKTOP_LABELS, DesktopLabels } from './desktop-labels';
+import { DEFAULT_DESKTOP_LABELS, DESKTOP_LABELS, DesktopLabels, formatLabel } from './desktop-labels';
 
 @Component({
   imports: [DesktopComponent, WindowComponent, DialogComponent],
@@ -77,5 +77,13 @@ describe('desktop labels', () => {
   it('leaves the labels alone when only other settings are given', () => {
     TestBed.configureTestingModule({ providers: [provideDesktopConfig({ motion: 'none' })] });
     expect(TestBed.inject(DESKTOP_LABELS)()).toEqual(DEFAULT_DESKTOP_LABELS);
+  });
+});
+
+describe('formatLabel', () => {
+  it('fills placeholders and leaves unknown ones', () => {
+    expect(formatLabel('{name} moved to {x}, {y} {z}', { name: 'Notes', x: 10, y: 0 })).toBe(
+      'Notes moved to 10, 0 {z}'
+    );
   });
 });

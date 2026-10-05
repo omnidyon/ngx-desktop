@@ -1,5 +1,5 @@
 import { Rect } from '../models/types';
-import { fitWithoutOverlap, limitResize } from './fit';
+import { fitWithoutOverlap, limitMove, limitResize } from './fit';
 import { intersects } from './rect';
 
 describe('fitWithoutOverlap', () => {
@@ -144,5 +144,30 @@ describe('limitResize', () => {
     const overlapping = { x: 250, y: 150, width: 200, height: 100 };
     const resized = { ...start, width: 400 };
     expect(limitResize(resized, start, 'e', [overlapping])).toEqual(resized);
+  });
+});
+
+describe('limitMove', () => {
+  const start = { x: 100, y: 100, width: 200, height: 100 };
+  const right = { x: 400, y: 120, width: 100, height: 100 };
+  const below = { x: 150, y: 300, width: 100, height: 100 };
+
+  it('moves freely when nothing is in the way', () => {
+    expect(limitMove(start, 50, 0, [right])).toEqual({ ...start, x: 150 });
+    expect(limitMove(start, -50, 0, [right])).toEqual({ ...start, x: 50 });
+  });
+
+  it('stops beside a window it moves towards, keeping the gap', () => {
+    expect(limitMove(start, 500, 0, [right])).toEqual({ ...start, x: 200 });
+    expect(limitMove(start, 500, 0, [right], 8)).toEqual({ ...start, x: 192 });
+  });
+
+  it('stops above a window below it', () => {
+    expect(limitMove(start, 0, 500, [below])).toEqual({ ...start, y: 200 });
+  });
+
+  it('ignores windows it already overlaps', () => {
+    const overlapping = { x: 250, y: 150, width: 100, height: 100 };
+    expect(limitMove(start, 30, 0, [overlapping])).toEqual({ ...start, x: 130 });
   });
 });

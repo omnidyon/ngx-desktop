@@ -40,7 +40,9 @@ export class DockComponent {
   constructor() {
     const element: HTMLElement = inject(ElementRef).nativeElement;
     // Windows fly into their tab when minimized, so the desktop needs to find it.
-    const unregister = this.desktop.registerDockLocator((id) => element.querySelector(`[data-window-id="${id}"]`));
+    const unregister = this.desktop.registerDockLocator((id) =>
+      element.querySelector<HTMLElement>(`[data-window-id="${id}"]`)
+    );
     inject(DestroyRef).onDestroy(unregister);
   }
 

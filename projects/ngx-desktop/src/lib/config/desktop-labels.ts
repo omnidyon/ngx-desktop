@@ -31,8 +31,22 @@ export interface DesktopLabels {
   exitFullScreen: string;
   /** The dock (its toolbar name). */
   dock: string;
-  /** Dock tab of a window without a header. */
+  /** Dock tab of a window without a header, and `{name}` in announcements. */
   untitledWindow: string;
+  /** Read by screen readers on a focused title bar (or widget grip). */
+  keyboardHelp: string;
+  /** Announced after a keyboard move; `{name}`, `{x}`, `{y}`. */
+  announceMoved: string;
+  /** Announced after a keyboard resize; `{name}`, `{width}`, `{height}`. */
+  announceResized: string;
+  /** Announced after Ctrl+Left; `{name}`. */
+  announceSnappedLeft: string;
+  /** Announced after Ctrl+Right; `{name}`. */
+  announceSnappedRight: string;
+  /** Announced after Ctrl+Up; `{name}`. */
+  announceMaximized: string;
+  /** Announced after Ctrl+Down restores a maximized or snapped window; `{name}`. */
+  announceRestored: string;
 }
 
 /**
@@ -48,6 +62,14 @@ export const DEFAULT_DESKTOP_LABELS: DesktopLabels = {
   exitFullScreen: 'Exit full screen',
   dock: 'Windows',
   untitledWindow: 'Window',
+  keyboardHelp:
+    'Arrow keys move the window, Shift+arrow keys resize it, Ctrl+arrow keys snap it to the left or right half, maximize, restore or minimize it.',
+  announceMoved: '{name} moved to {x}, {y}',
+  announceResized: '{name} resized to {width} by {height}',
+  announceSnappedLeft: '{name} snapped to the left half',
+  announceSnappedRight: '{name} snapped to the right half',
+  announceMaximized: '{name} maximized',
+  announceRestored: '{name} restored',
 };
 
 /**
@@ -62,6 +84,11 @@ export type DesktopLabelsInput = Partial<DesktopLabels> | Signal<Partial<Desktop
 export function desktopLabels(input: DesktopLabelsInput = {}): Signal<DesktopLabels> {
   const source = isSignal(input) ? input : signal(input);
   return computed(() => ({ ...DEFAULT_DESKTOP_LABELS, ...source() }));
+}
+
+/** @internal Fills `{key}` placeholders of a label. */
+export function formatLabel(label: string, values: Readonly<Record<string, string | number>>): string {
+  return label.replace(/\{(\w+)\}/g, (match, key: string) => (key in values ? String(values[key]) : match));
 }
 
 /**

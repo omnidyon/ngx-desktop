@@ -238,6 +238,27 @@ The animation length is `--omni-window-transition-duration` (see _Styling_).
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Keyboard</b></summary>
+
+Every window's title bar (a widget's grip) is a tab stop. Focus moving into a window brings it to the front. On a
+focused title bar:
+
+| Keys                | Action                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| Arrow keys          | move the window 10px (Alt: 1px)                                                        |
+| Shift + arrow keys  | resize from the right / bottom edge 10px (Alt: 1px)                                    |
+| Ctrl + Left / Right | snap to the left / right half                                                          |
+| Ctrl + Up           | maximize                                                                               |
+| Ctrl + Down         | restore a maximized or snapped window; otherwise minimize (focus goes to its dock tab) |
+
+Keyboard moves and resizes follow the same rules as the mouse: bounds, minimum and maximum size, magnetic snapping
+(only pulling the way the key goes, so a window can always step away from an edge) and no-overlap. They emit
+`dragEnd`, `resizeStart` / `resizeEnd` and `snapped` like a drag. Screen readers hear the keys described on the title
+bar and a short announcement after each change ("Notes moved to 120, 80"); both are translatable (see _Labels and
+translation_).
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Labels and translation</b></summary>
 
 The window buttons, the dock and its tabs have texts that screen readers announce. They are English by default and can
@@ -256,17 +277,26 @@ const labels = computed(() => ({ close: translate('close'), minimize: translate(
 provideDesktopConfig({ labels });
 ```
 
-| Label            | Default            | Used for                                     |
-| ---------------- | ------------------ | -------------------------------------------- |
-| `close`          | `Close`            | close button of windows, widgets and dialogs |
-| `minimize`       | `Minimize`         | minimize button                              |
-| `restore`        | `Restore`          | minimize button while minimized              |
-| `maximize`       | `Maximize`         | maximize button                              |
-| `restoreSize`    | `Restore size`     | maximize button while maximized              |
-| `fullScreen`     | `Full screen`      | full-screen button                           |
-| `exitFullScreen` | `Exit full screen` | full-screen button while full screen         |
-| `dock`           | `Windows`          | the dock toolbar                             |
-| `untitledWindow` | `Window`           | dock tab of a window without a `header`      |
+| Label                  | Default                                 | Used for                                                           |
+| ---------------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| `close`                | `Close`                                 | close button of windows, widgets and dialogs                       |
+| `minimize`             | `Minimize`                              | minimize button                                                    |
+| `restore`              | `Restore`                               | minimize button while minimized                                    |
+| `maximize`             | `Maximize`                              | maximize button                                                    |
+| `restoreSize`          | `Restore size`                          | maximize button while maximized                                    |
+| `fullScreen`           | `Full screen`                           | full-screen button                                                 |
+| `exitFullScreen`       | `Exit full screen`                      | full-screen button while full screen                               |
+| `dock`                 | `Windows`                               | the dock toolbar                                                   |
+| `untitledWindow`       | `Window`                                | dock tab of a window without a `header`, `{name}` in announcements |
+| `keyboardHelp`         | `Arrow keys move the window, …`         | read on a focused title bar (see _Keyboard_)                       |
+| `announceMoved`        | `{name} moved to {x}, {y}`              | after a keyboard move                                              |
+| `announceResized`      | `{name} resized to {width} by {height}` | after a keyboard resize                                            |
+| `announceSnappedLeft`  | `{name} snapped to the left half`       | after Ctrl+Left                                                    |
+| `announceSnappedRight` | `{name} snapped to the right half`      | after Ctrl+Right                                                   |
+| `announceMaximized`    | `{name} maximized`                      | after Ctrl+Up                                                      |
+| `announceRestored`     | `{name} restored`                       | after Ctrl+Down restores a maximized or snapped window             |
+
+Placeholders in `{braces}` are filled in; keep them in translations.
 
 </details>
 

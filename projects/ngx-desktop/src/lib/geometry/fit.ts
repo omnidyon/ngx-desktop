@@ -157,3 +157,27 @@ export function limitResize(
 
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
+
+/**
+ * @internal
+ * @description
+ * Limits a move by `dx` / `dy` so the rect stops at the other rects instead of overlapping them,
+ * keeping `gap` px between them (used by keyboard moves, which go one step at a time).
+ * Rects that already overlap the start rect do not block it.
+ */
+export function limitMove(start: Rect, dx: number, dy: number, others: readonly Rect[], gap = 0): Rect {
+  const obstacles = others.map((other) => inflate(other, gap)).filter((obstacle) => !intersects(start, obstacle));
+
+  const beside = obstacles.filter((o) => o.y < start.y + start.height && start.y < o.y + o.height);
+  for (const o of beside) {
+    if (dx > 0 && o.x >= start.x + start.width) dx = Math.min(dx, o.x - (start.x + start.width));
+    if (dx < 0 && o.x + o.width <= start.x) dx = Math.max(dx, o.x + o.width - start.x);
+  }
+  const x = start.x + dx;
+  const stacked = obstacles.filter((o) => o.x < x + start.width && x < o.x + o.width);
+  for (const o of stacked) {
+    if (dy > 0 && o.y >= start.y + start.height) dy = Math.min(dy, o.y - (start.y + start.height));
+    if (dy < 0 && o.y + o.height <= start.y) dy = Math.max(dy, o.y + o.height - start.y);
+  }
+  return { ...start, x, y: start.y + dy };
+}

@@ -2,11 +2,16 @@
   <div
     class="omni-window-header"
     [class.omni-window-header-draggable]="canDrag()"
+    tabindex="0"
+    role="group"
+    [attr.aria-label]="header() || labels().untitledWindow"
+    [attr.aria-describedby]="keyboardHelpId"
     [omniDraggable]="canDrag()"
     (dragStart)="onDragStart()"
     (dragMove)="onDragMove($event)"
     (dragEnd)="onDragEnd()"
     (dblclick)="onHeaderDoubleClick($event)"
+    (keydown)="onHeaderKeydown($event)"
   >
     <span class="omni-window-title" [hidden]="collapsed()" [attr.title]="customHeader() ? null : header() || null">
       <ng-content select="[omniWindowHeader]" />
@@ -62,11 +67,15 @@
 } @else {
   <div
     class="omni-widget-grip"
-    aria-hidden="true"
+    tabindex="0"
+    role="group"
+    [attr.aria-label]="header() || labels().untitledWindow"
+    [attr.aria-describedby]="keyboardHelpId"
     [omniDraggable]="canDrag()"
     (dragStart)="onDragStart()"
     (dragMove)="onDragMove($event)"
     (dragEnd)="onDragEnd()"
+    (keydown)="onHeaderKeydown($event)"
   >
     <omni-move-icon />
   </div>
@@ -81,6 +90,9 @@
     </button>
   }
 }
+
+<span class="omni-visually-hidden" [id]="keyboardHelpId">{{ labels().keyboardHelp }}</span>
+<div class="omni-visually-hidden" aria-live="polite" aria-atomic="true">{{ announcement() }}</div>
 
 <div class="omni-window-content" [hidden]="collapsed()">
   <ng-content />
