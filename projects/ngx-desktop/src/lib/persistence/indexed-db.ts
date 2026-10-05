@@ -22,6 +22,14 @@ export const SESSION_STORE = 'sessions';
 
 const STORES = [LAYOUT_STORE, SESSION_STORE];
 
+/** @internal */
+export interface OpenDatabaseOptions {
+  /** The connection was closed (another tab upgrades the database, or the browser closed it). */
+  onClosed?: () => void;
+  /** Opening is blocked by an older connection; this attempt gives up and resolves `null`. */
+  onBlocked?: () => void;
+}
+
 /**
  * @internal
  * @description
@@ -30,10 +38,12 @@ const STORES = [LAYOUT_STORE, SESSION_STORE];
  */
 export function openDesktopDatabase(
   factory: IDBFactory | undefined,
-  name = DATABASE_NAME
+  name = DATABASE_NAME,
+  options: OpenDatabaseOptions = {}
 ): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {
     if (!factory) return resolve(null);
+    let settled = false;
     try {
       const request = factory.open(name, DATABASE_VERSION);
       request.onupgradeneeded = () => {
@@ -45,12 +55,30 @@ export function openDesktopDatabase(
       };
       request.onsuccess = () => {
         const database = request.result;
+        if (settled) {
+          // Opened after this attempt gave up (it was blocked): nobody uses it, so do not leak it.
+          database.close();
+          return;
+        }
+        settled = true;
         // Let a newer version of the library (e.g. in another tab) upgrade the database.
-        database.onversionchange = () => database.close();
+        database.onversionchange = () => {
+          database.close();
+          options.onClosed?.();
+        };
+        database.onclose = () => options.onClosed?.();
         resolve(database);
       };
-      request.onerror = () => resolve(null);
-      request.onblocked = () => resolve(null);
+      request.onerror = () => {
+        settled = true;
+        resolve(null);
+      };
+      request.onblocked = () => {
+        if (settled) return;
+        settled = true;
+        options.onBlocked?.();
+        resolve(null);
+      };
     } catch {
       resolve(null);
     }
@@ -124,7 +152,12 @@ export class IndexedDbStore<T> {
   }
 
   private open(): Promise<IDBDatabase | null> {
-    this.database ??= openDesktopDatabase(this.factory, this.databaseName);
+    this.database ??= openDesktopDatabase(this.factory, this.databaseName, {
+      // A closed connection cannot be used again: open a new one on the next request.
+      onClosed: () => (this.database = null),
+      // Blocked by an older connection: this request falls back to memory, the next one tries again.
+      onBlocked: () => (this.database = null),
+    });
     return this.database;
   }
 

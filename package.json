@@ -11,7 +11,8 @@
     "lint": "ng lint",
     "format": "prettier --write \"projects/**/*.{ts,html,scss,json}\"",
     "format:check": "prettier --check \"projects/**/*.{ts,html,scss,json}\"",
-    "publish:lib": "npm run build && npm publish ./dist/ngx-desktop --access public && npx jsr publish"
+    "publish:lib": "bash ./publish-lib.sh",
+    "publish:dry-run": "npm run lint && npm test && npm run build && npm publish ./dist/ngx-desktop --dry-run"
   },
   "private": true,
   "packageManager": "npm@11.12.1",

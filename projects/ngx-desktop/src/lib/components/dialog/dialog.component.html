@@ -3,12 +3,15 @@
     <div class="omni-dialog-overlay" animate.enter="omni-fade-in" animate.leave="omni-fade-out"></div>
   }
   <div
+    #panel
     class="omni-dialog"
     role="dialog"
+    tabindex="-1"
     [attr.aria-modal]="modal()"
     [attr.aria-labelledby]="titleId"
     animate.enter="omni-dialog-in"
     animate.leave="omni-dialog-out"
+    (keydown)="onKeydown($event)"
   >
     <div class="omni-window-header">
       <span class="omni-window-title" [id]="titleId">

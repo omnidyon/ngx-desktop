@@ -39,7 +39,7 @@ import { DesktopWindow } from '../../models/desktop-window';
 import { DesktopTheme, Rect, ResizeDirection, Size, SnapZone, WindowPosition } from '../../models/types';
 import { ForgottenLayouts } from '../../persistence/forgotten-layouts';
 import { DESKTOP_LAYOUT_STORAGE } from '../../persistence/layout-storage.provider';
-import { WindowLayout } from '../../persistence/window-layout';
+import { isWindowLayout, WindowLayout } from '../../persistence/window-layout';
 import { DesktopService } from '../../services/desktop.service';
 import { blockBodyScroll, unblockBodyScroll } from '../../utils/body-scroll';
 import { uniqueId } from '../../utils/unique-id';
@@ -149,7 +149,9 @@ export class WindowComponent implements DesktopWindow {
   /**
    * Saves the window's position, size, snapped zone and minimized/maximized/visible state under
    * this key (IndexedDB by default, see `provideDesktopLayoutStorage`) and restores it on load.
-   * Keys must be unique per window.
+   * Keys must be unique per window. The saved `visible` / `minimized` / `maximized` state wins over the
+   * template's values, so a window the user closed stays closed after a reload: offer a way to reopen it
+   * through `[(visible)]` unless it belongs to a desktop session.
    */
   readonly persistKey = input<string>();
 
@@ -188,6 +190,10 @@ export class WindowComponent implements DesktopWindow {
   private readonly restoreSize = signal<Size | null>(null);
 
   private interactionStart: Rect | null = null;
+  /** What the pointer is doing right now. */
+  private interaction: 'drag' | 'resize' | null = null;
+  /** Resolves the wait in initialize() once the bounds are big enough to place the window. */
+  private boundsWaiter: (() => void) | null = null;
   /** The zone under the pointer during the current drag. */
   private dragZone: SnapZone | null = null;
   /** Without overlap: where the dragged window will land (`null`: nowhere, it goes back). */
@@ -208,6 +214,11 @@ export class WindowComponent implements DesktopWindow {
   protected readonly canResize = computed(
     () => this.resizable() && !this.maximized() && !this.minimized() && !this.fullScreen()
   );
+  /** The desktop has a size the window can be placed in (a hidden desktop measures 0 × 0). */
+  private readonly desktopUsable = computed(() => {
+    const size = this.desktop?.size();
+    return !size || (size.width >= this.minWidth() && size.height >= this.minHeight());
+  });
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -242,6 +253,24 @@ export class WindowComponent implements DesktopWindow {
     effect(() => {
       const rect = this.rect();
       untracked(() => this.onExternalRect(rect));
+    });
+
+    // A window created while its desktop is hidden waits for a usable size before it is placed.
+    effect(() => {
+      if (!this.desktopUsable()) return;
+      untracked(() => {
+        const waiter = this.boundsWaiter;
+        this.boundsWaiter = null;
+        waiter?.();
+      });
+    });
+
+    // A resize ends when its handles disappear (e.g. the window is maximized mid-resize).
+    effect(() => {
+      if (this.canResize()) return;
+      untracked(() => {
+        if (this.interaction === 'resize') this.onResizeEnd();
+      });
     });
 
     // Inside a desktop: follow changes of the desktop's size.
@@ -333,12 +362,15 @@ export class WindowComponent implements DesktopWindow {
     await this.storage.remove(key);
   }
 
-  protected onHeaderDoubleClick(): void {
+  protected onHeaderDoubleClick(event: MouseEvent): void {
+    // Double-clicking a header button (e.g. Close) is two clicks on that button, not a maximize.
+    if ((event.target as Element | null)?.closest?.('.omni-window-buttons')) return;
     if (!this.collapsed()) this.toggleMaximize();
   }
 
   protected onDragStart(): void {
     this.interactionStart = this.rect();
+    this.interaction = this.interactionStart ? 'drag' : null;
     this.interacting.set(!!this.interactionStart);
     this.unsnapPending = !!this.restoreSize();
   }
@@ -408,6 +440,7 @@ export class WindowComponent implements DesktopWindow {
     this.restoreSize.set(null);
     this.snapZone.set(null);
     this.interactionStart = this.rect();
+    this.interaction = this.interactionStart ? 'resize' : null;
     this.interacting.set(!!this.interactionStart);
     if (this.interactionStart) this.resizeStart.emit(this.interactionStart);
   }
@@ -468,8 +501,10 @@ export class WindowComponent implements DesktopWindow {
       }
     }
     if (this.destroyed) return;
+    await this.whenBoundsUsable();
+    if (this.destroyed) return;
 
-    if (saved?.version === 1) {
+    if (isWindowLayout(saved)) {
       this.applyLayout(saved);
     } else {
       this.setRect(this.arrange(this.initialRect()));
@@ -503,12 +538,17 @@ export class WindowComponent implements DesktopWindow {
     // Zones only exist inside a desktop; re-fit them to the desktop's current size.
     const zone = this.desktop ? layout.zone : null;
     this.snapZone.set(zone);
-    this.restoreSize.set(zone ? layout.restoreSize : null);
-    let rect = layout.rect;
+    // Also kept without a zone: a window that only partly fitted its zone still drags out to its old size.
+    this.restoreSize.set(this.desktop ? layout.restoreSize : null);
+    let rect = {
+      ...layout.rect,
+      width: Math.max(layout.rect.width, this.minWidth()),
+      height: Math.max(layout.rect.height, this.minHeight()),
+    };
     if (zone) {
       rect = zoneRect(zone, bounds, this.snapPadding());
     } else if (this.keepInBounds()) {
-      rect = clampRect(layout.rect, bounds);
+      rect = clampRect(rect, bounds);
     }
     this.visible.set(layout.visible);
     this.minimized.set(layout.minimized);
@@ -564,7 +604,7 @@ export class WindowComponent implements DesktopWindow {
   /** Keeps a snapped window in its zone and other windows inside the bounds after a resize of the bounds. */
   private fitToBounds(): void {
     const rect = this.rect();
-    if (!rect || !this.ready() || this.interactionStart) return;
+    if (!rect || !this.ready() || this.interactionStart || !this.boundsUsable()) return;
     const bounds = this.bounds();
     const zone = this.snapZone();
     if (zone) {
@@ -647,6 +687,18 @@ export class WindowComponent implements DesktopWindow {
     return { x: 0, y: 0, width: view?.innerWidth ?? 0, height: view?.innerHeight ?? 0 };
   }
 
+  /** Whether the bounds can hold the window at its minimum size (a hidden desktop measures 0 × 0). */
+  private boundsUsable(): boolean {
+    const { width, height } = this.bounds();
+    return width >= this.minWidth() && height >= this.minHeight();
+  }
+
+  /** Resolves once the bounds are usable; right away when they already are, or outside a desktop. */
+  private whenBoundsUsable(): Promise<void> {
+    if (!this.desktop || this.boundsUsable()) return Promise.resolve();
+    return new Promise((resolve) => (this.boundsWaiter = resolve));
+  }
+
   /** Bounds for the window's current visual size (a collapsed window is smaller than its rect). */
   private visibleBounds(): Rect {
     const bounds = this.bounds();
@@ -663,6 +715,7 @@ export class WindowComponent implements DesktopWindow {
     const rect = this.rect();
     const started = !!this.interactionStart;
     this.interactionStart = null;
+    this.interaction = null;
     this.interacting.set(false);
     if (started && rect) emitter.emit(rect);
   }

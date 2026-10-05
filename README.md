@@ -93,6 +93,12 @@ across reloads. Keys must be unique per window.
   some private modes) they are kept in memory and a single warning is logged.
 - A saved snapped zone is re-fitted to the current desktop size; a saved rect is kept inside a smaller desktop.
 - Saving happens a moment after the last change, never in the middle of a drag.
+- **The saved state wins over the template:** a saved `visible`, `minimized` or `maximized` replaces the values set in
+  the template (and two-way bindings such as `[(visible)]` are updated to match). A window the user closed therefore
+  stays closed after a reload; if it is not part of a session, give users a way to reopen it with `[(visible)]` (the
+  demo's "Reopen Notes" button does this).
+- A desktop that is hidden (`display: none`, an inactive tab, a collapsed panel) does not shrink its windows; windows
+  created while it is hidden are placed once it is shown.
 - `window.forgetLayout()` deletes one saved layout; `inject(DESKTOP_LAYOUT_STORAGE).clear()` deletes all of them.
 
 To store layouts elsewhere (for example on your backend, per user), implement `DesktopLayoutStorage` and provide it:

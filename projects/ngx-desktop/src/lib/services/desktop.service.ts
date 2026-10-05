@@ -85,17 +85,24 @@ export class DesktopService {
     };
   }
 
-  /** Re-reads the container size; called by the desktop when its element is resized. */
+  /**
+   * Re-reads the container size; called by the desktop when its element is resized.
+   * A hidden desktop measures 0 × 0; that is ignored, so windows keep their size until it is shown again.
+   */
   updateSize(): void {
     const { width, height } = this.bounds();
+    if (width === 0 || height === 0) return;
     const current = this._size();
     if (current.width !== width || current.height !== height) this._size.set({ width, height });
   }
 
   /** Converts viewport (client) coordinates to container coordinates. */
   toLocal(clientX: number, clientY: number): { x: number; y: number } {
-    const origin = this.container?.getBoundingClientRect();
-    return { x: clientX - (origin?.left ?? 0), y: clientY - (origin?.top ?? 0) };
+    const container = this.container;
+    if (!container) return { x: clientX, y: clientY };
+    // Windows are positioned inside the border, so the border is not part of the desktop area.
+    const origin = container.getBoundingClientRect();
+    return { x: clientX - origin.left - container.clientLeft, y: clientY - origin.top - container.clientTop };
   }
 
   /** Rects of the windows a window can snap to: every other window that is on screen and not maximized. */

@@ -7,27 +7,47 @@
  */
 
 import {
+  afterRenderEffect,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
   contentChild,
+  DestroyRef,
+  DOCUMENT,
+  ElementRef,
   inject,
   input,
   model,
   output,
+  viewChild,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
 import { DesktopTheme } from '../../models/types';
 import { uniqueId } from '../../utils/unique-id';
 import { CloseIconComponent } from '../icons/close-icon/close-icon.component';
+import { DialogStack } from './dialog-stack';
+
+const FOCUSABLE = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(', ');
 
 /**
  * @publicApi
  * @description
  * A centered dialog with an optional modal overlay. Shares its look with `<omni-window>`
  * but is not draggable or resizable.
+ *
+ * Keyboard: when it opens, focus moves to the first control in its content or footer (or to the
+ * dialog itself); while it is modal, Tab stays inside it; when it closes, focus goes back to where it
+ * was. Escape closes the topmost open dialog only.
  *
  * @usageNotes
  * <omni-dialog [(visible)]="open" header="Confirm" [modal]="true">
@@ -44,16 +64,18 @@ import { CloseIconComponent } from '../icons/close-icon/close-icon.component';
   host: {
     '[class]': 'hostClasses()',
     '[style.z-index]': 'zIndex',
-    '(document:keydown.escape)': 'onEscape()',
+    '(document:keydown.escape)': 'onEscape($event)',
   },
 })
 export class DialogComponent {
+  private readonly document = inject(DOCUMENT);
+  private readonly stack = inject(DialogStack);
   protected readonly zIndex = inject(DESKTOP_CONFIG).zIndex.dialog;
   protected readonly titleId = uniqueId('omni-dialog-title-');
 
   readonly header = input('');
   readonly theme = input<DesktopTheme>();
-  /** Dims the page behind the dialog and blocks interaction with it. */
+  /** Dims the page behind the dialog, blocks interaction with it and keeps keyboard focus inside the dialog. */
   readonly modal = input(false, { transform: booleanAttribute });
   readonly closable = input(true, { transform: booleanAttribute });
   readonly closeOnEscape = input(true, { transform: booleanAttribute });
@@ -64,6 +86,11 @@ export class DialogComponent {
 
   protected readonly customHeader = contentChild(WindowHeaderDirective);
   protected readonly customFooter = contentChild(WindowFooterDirective);
+  private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
+
+  /** The rendered panel while the dialog is open, and the element that had focus before it opened. */
+  private openPanel: HTMLElement | null = null;
+  private returnFocus: HTMLElement | null = null;
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -74,13 +101,70 @@ export class DialogComponent {
     };
   });
 
+  constructor() {
+    // Runs after rendering, so the panel exists (or is gone) when focus is moved.
+    afterRenderEffect(() => {
+      const panel = this.panel()?.nativeElement ?? null;
+      if (panel && panel !== this.openPanel) this.onOpened(panel);
+      if (!panel && this.openPanel) this.onClosed();
+    });
+
+    inject(DestroyRef).onDestroy(() => {
+      if (this.openPanel) this.onClosed();
+    });
+  }
+
   close(): void {
     if (!this.visible()) return;
     this.visible.set(false);
     this.closed.emit();
   }
 
-  protected onEscape(): void {
-    if (this.closable() && this.closeOnEscape()) this.close();
+  protected onEscape(event: Event): void {
+    if (!this.visible() || !this.closable() || !this.closeOnEscape()) return;
+    if (this.stack.claim(event, this)) this.close();
+  }
+
+  /** Keeps Tab inside a modal dialog. */
+  protected onKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'Tab' || !this.modal() || !this.openPanel) return;
+    const focusable = this.focusable(this.openPanel);
+    if (focusable.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = this.document.activeElement;
+    if (event.shiftKey && (active === first || active === this.openPanel)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  private onOpened(panel: HTMLElement): void {
+    this.openPanel = panel;
+    this.stack.push(this);
+    const active = this.document.activeElement;
+    this.returnFocus = active instanceof HTMLElement && active !== this.document.body ? active : null;
+    // Prefer a control in the content or footer over the header's close button.
+    const focusable = this.focusable(panel);
+    const target = focusable.find((element) => !element.closest('.omni-window-header')) ?? focusable[0] ?? panel;
+    target.focus();
+  }
+
+  private onClosed(): void {
+    this.openPanel = null;
+    this.stack.remove(this);
+    const target = this.returnFocus;
+    this.returnFocus = null;
+    if (target?.isConnected) target.focus();
+  }
+
+  private focusable(panel: HTMLElement): HTMLElement[] {
+    return Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((element) => !element.closest('[hidden]'));
   }
 }

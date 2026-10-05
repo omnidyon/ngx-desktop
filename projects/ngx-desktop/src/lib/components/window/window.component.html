@@ -5,7 +5,7 @@
   (dragStart)="onDragStart()"
   (dragMove)="onDragMove($event)"
   (dragEnd)="onDragEnd()"
-  (dblclick)="onHeaderDoubleClick()"
+  (dblclick)="onHeaderDoubleClick($event)"
 >
   <span class="omni-window-title" [hidden]="collapsed()">
     <ng-content select="[omniWindowHeader]" />

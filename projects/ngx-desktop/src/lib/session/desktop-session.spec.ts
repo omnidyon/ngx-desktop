@@ -177,6 +177,25 @@ describe('DesktopSession', () => {
     expect(warn).toHaveBeenCalledTimes(2);
   });
 
+  it('drops invalid stored windows and warns', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await sessions.save('docs', {
+      version: 1,
+      windows: [{ key: 'ok', data: { title: 'Kept' } }, { key: 42, data: {} }, null, { data: {} }, { key: '' }],
+    } as unknown as SessionRecord);
+    const session = create();
+    await settle();
+    expect(session.windows()).toEqual([{ key: 'ok', data: { title: 'Kept' } }]);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a record without a window list', async () => {
+    await sessions.save('docs', { version: 1, windows: 'nope' } as unknown as SessionRecord);
+    const session = create();
+    await settle();
+    expect(session.windows()).toEqual([]);
+  });
+
   it('ignores records of an unknown version', async () => {
     await sessions.save('docs', { version: 2, windows: [{ key: 'x', data: {} }] } as unknown as SessionRecord);
     const session = create();

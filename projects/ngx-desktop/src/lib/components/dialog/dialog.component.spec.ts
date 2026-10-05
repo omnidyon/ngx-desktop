@@ -4,6 +4,14 @@ import { WindowFooterDirective } from '../../directives/window-slots.directive';
 import { DesktopTheme } from '../../models/types';
 import { DialogComponent } from './dialog.component';
 
+/** A dialog with only text and no close button: nothing inside it can take focus. */
+@Component({
+  imports: [DialogComponent],
+  template: `<omni-dialog header="Info" [closable]="false"><p>Just text.</p></omni-dialog>`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class PlainDialogHostComponent {}
+
 @Component({
   imports: [DialogComponent, WindowFooterDirective],
   template: `
@@ -16,7 +24,7 @@ import { DialogComponent } from './dialog.component';
       [(visible)]="visible"
       (closed)="closedCount = closedCount + 1"
     >
-      <p class="body">Are you sure?</p>
+      <p class="body">Are you sure? <input class="field" /></p>
       @if (footer()) {
         <div omniWindowFooter class="actions">OK</div>
       }
@@ -106,6 +114,62 @@ describe('DialogComponent', () => {
     host.footer.set(true);
     await stable();
     expect((query('.omni-window-footer') as HTMLElement).hidden).toBe(false);
+  });
+
+  describe('focus', () => {
+    it('moves focus into the dialog content when it opens and back when it closes', async () => {
+      host.visible.set(false);
+      await stable();
+      const opener = document.createElement('button');
+      document.body.appendChild(opener);
+      opener.focus();
+
+      host.visible.set(true);
+      await stable();
+      expect(document.activeElement).toBe(query('.field'));
+
+      escape();
+      await stable();
+      expect(document.activeElement).toBe(opener);
+      opener.remove();
+    });
+
+    it('focuses the dialog itself when it has nothing focusable', async () => {
+      const plain = TestBed.createComponent(PlainDialogHostComponent);
+      await plain.whenStable();
+      const panel = (plain.nativeElement as HTMLElement).querySelector('.omni-dialog');
+      expect(document.activeElement).toBe(panel);
+    });
+
+    it('keeps Tab inside a modal dialog', async () => {
+      host.modal.set(true);
+      host.footer.set(true);
+      await stable();
+      const panel = query('.omni-dialog')!;
+      const closeButton = query('.omni-window-button[aria-label="Close"]') as HTMLElement;
+      const field = query('.field') as HTMLElement;
+      const tab = (shiftKey = false) => {
+        const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+        document.activeElement!.dispatchEvent(event);
+        return event;
+      };
+
+      field.focus();
+      // field is the last focusable element (the footer only has text): Tab wraps to the close button.
+      expect(tab().defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(closeButton);
+      expect(tab(true).defaultPrevented).toBe(true);
+      expect(document.activeElement).toBe(field);
+      expect(panel.contains(document.activeElement)).toBe(true);
+    });
+
+    it('does not trap Tab when not modal', async () => {
+      const field = query('.field') as HTMLElement;
+      field.focus();
+      const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+      field.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+    });
   });
 
   it('applies the theme class and the dialog z-index', async () => {

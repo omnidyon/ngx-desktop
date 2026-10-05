@@ -14,6 +14,13 @@ import { DESKTOP_SESSION_STORAGE, DesktopSessionStorage, SessionRecord, SessionW
 
 let fallbackKeyCounter = 0;
 
+function isSessionWindow(value: unknown): value is SessionWindow {
+  const window = value as SessionWindow | null;
+  return (
+    !!window && typeof window === 'object' && typeof window.key === 'string' && window.key !== '' && 'data' in window
+  );
+}
+
 function uniqueSuffix(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${++fallbackKeyCounter}`;
 }
@@ -114,10 +121,17 @@ export class DesktopSession<T> {
   private async restore(): Promise<void> {
     try {
       const record = (await this.storage.load(this.sessionKey)) as SessionRecord<T> | null;
-      if (record?.version === 1) {
+      if (record?.version === 1 && Array.isArray(record.windows)) {
+        // Stored data may be broken, edited by hand or come from a custom backend: keep only valid entries.
+        const valid = record.windows.filter(isSessionWindow);
+        if (valid.length !== record.windows.length) {
+          console.warn(
+            `[ngx-desktop] Ignored ${record.windows.length - valid.length} invalid window(s) in the session "${this.sessionKey}".`
+          );
+        }
         // Windows opened before loading finished stay, after the restored ones.
         const opened = this._windows();
-        const restored = record.windows.filter((w) => !opened.some((o) => o.key === w.key));
+        const restored = (valid as SessionWindow<T>[]).filter((w) => !opened.some((o) => o.key === w.key));
         this._windows.set([...restored, ...opened]);
       }
     } catch (error) {

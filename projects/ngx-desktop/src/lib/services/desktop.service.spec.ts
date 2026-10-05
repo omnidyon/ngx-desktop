@@ -105,6 +105,27 @@ describe('DesktopService', () => {
     expect(service.size()).toEqual({ width: 800, height: 480 });
   });
 
+  it('ignores the 0 × 0 size of a hidden desktop and keeps the last real size', () => {
+    const element = document.createElement('div');
+    let width = 640;
+    Object.defineProperty(element, 'clientWidth', { get: () => width });
+    Object.defineProperty(element, 'clientHeight', { get: () => (width ? 480 : 0) });
+    service.attachContainer(element);
+    service.updateSize();
+    width = 0;
+    service.updateSize();
+    expect(service.size()).toEqual({ width: 640, height: 480 });
+  });
+
+  it('converts pointer positions to desktop coordinates inside the border', () => {
+    const element = document.createElement('div');
+    Object.defineProperty(element, 'clientLeft', { value: 3 });
+    Object.defineProperty(element, 'clientTop', { value: 4 });
+    element.getBoundingClientRect = () => ({ left: 10, top: 20 }) as DOMRect;
+    service.attachContainer(element);
+    expect(service.toLocal(15, 30)).toEqual({ x: 2, y: 6 });
+  });
+
   it('reports empty bounds without a container', () => {
     expect(service.bounds()).toEqual({ x: 0, y: 0, width: 0, height: 0 });
   });

@@ -1,22 +1,40 @@
-# Builds and publishes @omnidyon/ngx-desktop to npm and JSR.
-# Run ONLY after explicit approval (see CLAUDE.md Hard Rules). Git commit/tag/push are left to the maintainer.
+# Publishes @omnidyon/ngx-desktop to npm.
+# Run ONLY after explicit approval (see CLAUDE.md Hard Rules). Git commit, tag and push stay manual.
+# Usage: .\publish-lib.ps1 [patch|minor|major]   (default: patch)
+param([ValidateSet('patch', 'minor', 'major')][string]$Release = 'patch')
 $ErrorActionPreference = 'Stop'
-Write-Host "Publishing @omnidyon/ngx-desktop..." -ForegroundColor Blue
 
-# Version source of truth: projects/ngx-desktop/package.json (synced into jsr.json below)
-Push-Location projects/ngx-desktop; npm version patch --no-git-tag-version; Pop-Location
-$jsr = Get-Content jsr.json | ConvertFrom-Json
-$jsr.version = (Get-Content "projects/ngx-desktop/package.json" | ConvertFrom-Json).version
-$jsr | ConvertTo-Json | Set-Content -Encoding utf8 jsr.json
+$libPackage = 'projects/ngx-desktop/package.json'
 
-npm run lint; if (-not $?) { exit 1 }
-npm test; if (-not $?) { exit 1 }
-npm run build; if (-not $?) { exit 1 }
+function Invoke-Step([string]$command) {
+  Write-Host "> $command" -ForegroundColor DarkGray
+  cmd /c $command
+  if ($LASTEXITCODE -ne 0) { throw "'$command' failed." }
+}
 
-Push-Location dist/ngx-desktop
-npm publish --access public
-Pop-Location
-npx jsr publish
+if (git status --porcelain) {
+  Write-Error 'The working tree is not clean; commit or stash your changes first.'
+}
 
-$version = (Get-Content "projects/ngx-desktop/package.json" | ConvertFrom-Json).version
-Write-Host "Published v$version. Commit, tag and push manually once reviewed." -ForegroundColor Green
+# 1. Everything must pass before anything is changed.
+Invoke-Step 'npm run lint'
+Invoke-Step 'npm run format:check'
+Invoke-Step 'npm test'
+Invoke-Step 'npm run test:examples'
+
+# 2. Bump the version; it is put back if the build or the publish fails.
+Copy-Item $libPackage "$libPackage.bak"
+try {
+  Push-Location projects/ngx-desktop
+  try { Invoke-Step "npm version $Release --no-git-tag-version" } finally { Pop-Location }
+  Invoke-Step 'npm run build'
+  Invoke-Step 'npm publish ./dist/ngx-desktop --access public'
+  Remove-Item "$libPackage.bak"
+} catch {
+  Move-Item -Force "$libPackage.bak" $libPackage
+  Write-Error "Release failed; the version was restored. $_"
+}
+
+$version = (Get-Content $libPackage | ConvertFrom-Json).version
+Write-Host "Published @omnidyon/ngx-desktop@$version. Commit, tag and push once reviewed:" -ForegroundColor Green
+Write-Host "  git add $libPackage; git commit -m `"chore: release v$version`"; git tag v$version"
