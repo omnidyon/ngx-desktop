@@ -51,6 +51,15 @@ module.exports = tseslint.config(
     },
   },
   {
+    // Test host components are throwaway fixtures; an inline template keeps each spec self-contained.
+    // All other conventions (signals, control flow, OnPush) still apply.
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@angular-eslint/component-max-inline-declarations': 'off',
+      '@angular-eslint/component-selector': 'off',
+    },
+  },
+  {
     files: ['**/*.html'],
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {

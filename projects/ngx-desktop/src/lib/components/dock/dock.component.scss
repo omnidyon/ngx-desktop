@@ -1,0 +1,80 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+@use '../../styles/defaults';
+
+@include defaults.dock-properties;
+
+:host {
+  position: absolute;
+  left: 50%;
+  translate: -50% 0;
+  display: flex;
+  gap: var(--omni-dock-padding);
+  padding: var(--omni-dock-padding) calc(2 * var(--omni-dock-padding));
+  background-color: var(--omni-dock-background);
+}
+
+:host(.omni-dock-bottom) {
+  bottom: 0;
+  border-radius: var(--omni-dock-border-radius) var(--omni-dock-border-radius) 0 0;
+}
+
+:host(.omni-dock-top) {
+  top: 0;
+  border-radius: 0 0 var(--omni-dock-border-radius) var(--omni-dock-border-radius);
+}
+
+:host(.omni-dock-empty) {
+  display: none;
+}
+
+.omni-dock-tab {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--omni-dock-tab-size);
+  height: var(--omni-dock-tab-size);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background-color: var(--omni-dock-tab-background);
+  color: var(--omni-dock-text-color);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--omni-dock-tab-hover-background);
+  }
+
+  &:focus-visible {
+    outline: 1px solid var(--omni-dock-text-color);
+  }
+}
+
+.omni-dock-tab-minimized {
+  background-color: var(--omni-dock-active-tab-background);
+}
+
+.omni-dock-tab-focused {
+  border-color: var(--omni-dock-text-color);
+}
+
+.omni-dock-icon {
+  max-width: 24px;
+  max-height: 24px;
+}
+
+.omni-dock-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 2px;
+}

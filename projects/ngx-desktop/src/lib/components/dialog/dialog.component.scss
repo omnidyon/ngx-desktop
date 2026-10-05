@@ -1,0 +1,80 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+@use '../../styles/window-chrome';
+@use '../../styles/defaults';
+@use '../../styles/themes';
+
+@include defaults.window-properties;
+@include defaults.dialog-properties;
+@include themes.themes(window, dialog);
+
+:host {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.omni-dialog-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--omni-dialog-overlay-color);
+  pointer-events: auto;
+}
+
+.omni-dialog {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: var(--omni-dialog-width);
+  max-height: var(--omni-dialog-max-height);
+  overflow: hidden;
+  background: var(--omni-dialog-background);
+  border: var(--omni-window-border-width) solid var(--omni-window-border-color);
+  border-radius: var(--omni-window-border-radius);
+  pointer-events: auto;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@include window-chrome.window-chrome;
+
+.omni-fade-in {
+  animation: omni-fade var(--omni-window-transition-duration) reverse;
+}
+
+.omni-fade-out {
+  animation: omni-fade var(--omni-window-transition-duration);
+}
+
+.omni-dialog-in {
+  animation: omni-dialog-pop var(--omni-window-transition-duration) reverse;
+}
+
+.omni-dialog-out {
+  animation: omni-dialog-pop var(--omni-window-transition-duration);
+}
+
+@keyframes omni-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes omni-dialog-pop {
+  to {
+    opacity: 0;
+    scale: 0.95;
+  }
+}

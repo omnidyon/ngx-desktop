@@ -1,0 +1,84 @@
+<div
+  class="omni-window-header"
+  [class.omni-window-header-draggable]="canDrag()"
+  [omniDraggable]="canDrag()"
+  (dragStart)="onDragStart()"
+  (dragMove)="onDragMove($event)"
+  (dragEnd)="onDragEnd()"
+  (dblclick)="onHeaderDoubleClick()"
+>
+  <span class="omni-window-title" [hidden]="collapsed()">
+    <ng-content select="[omniWindowHeader]" />
+    @if (!customHeader()) {
+      @if (icon(); as src) {
+        <img class="omni-window-icon" [src]="src" alt="" />
+      }
+      <span class="omni-window-header-text">{{ header() }}</span>
+    }
+  </span>
+  @if (collapsed()) {
+    <span class="omni-window-title omni-window-move-icon"><omni-move-icon /></span>
+  }
+
+  <div class="omni-window-buttons">
+    @if (minimizable() && !fullScreen()) {
+      <button
+        type="button"
+        class="omni-window-button"
+        [attr.aria-label]="minimized() ? 'Restore' : 'Minimize'"
+        (click)="toggleMinimize()"
+      >
+        <omni-minimize-icon [restore]="collapsed()" />
+      </button>
+    }
+    @if (maximizable() && !minimized() && !fullScreen()) {
+      <button
+        type="button"
+        class="omni-window-button"
+        [attr.aria-label]="maximized() ? 'Restore size' : 'Maximize'"
+        (click)="toggleMaximize()"
+      >
+        <omni-maximize-icon [restore]="maximized()" />
+      </button>
+    }
+    @if (fullScreenable() && !minimized()) {
+      <button
+        type="button"
+        class="omni-window-button"
+        [attr.aria-label]="fullScreen() ? 'Exit full screen' : 'Full screen'"
+        (click)="toggleFullScreen()"
+      >
+        <omni-full-screen-icon />
+      </button>
+    }
+    @if (closable()) {
+      <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
+        <omni-close-icon />
+      </button>
+    }
+  </div>
+</div>
+
+<div class="omni-window-content" [hidden]="collapsed()">
+  <ng-content />
+</div>
+
+<div class="omni-window-footer" [hidden]="!customFooter() || collapsed()">
+  <ng-content select="[omniWindowFooter]" />
+</div>
+
+@if (canResize()) {
+  @for (direction of resizeDirections; track direction) {
+    <div
+      class="omni-resize-handle omni-resize-{{ direction }}"
+      omniDraggable
+      (dragStart)="onResizeStart()"
+      (dragMove)="onResizeMove(direction, $event)"
+      (dragEnd)="onResizeEnd()"
+    >
+      @if (direction === 'se') {
+        <omni-resize-icon class="omni-resize-grip" />
+      }
+    </div>
+  }
+}

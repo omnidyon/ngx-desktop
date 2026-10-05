@@ -31,11 +31,34 @@ export type SnapZone = 'left' | 'right' | 'topleft' | 'topright' | 'bottomleft' 
 /**
  * @publicApi
  * @description
- * An axis-aligned rectangle in pixels, relative to the desktop container.
+ * Where the dock (taskbar) of a desktop is rendered. `none` hides it.
  */
-export interface Rect {
-  x: number;
-  y: number;
+export type DockPosition = 'bottom' | 'top' | 'none';
+
+/**
+ * @publicApi
+ * @description
+ * The edge or corner a window is being resized from.
+ */
+export type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+
+/**
+ * @publicApi
+ * @description
+ * A width/height pair in pixels.
+ */
+export interface Size {
   width: number;
   height: number;
+}
+
+/**
+ * @publicApi
+ * @description
+ * An axis-aligned rectangle in pixels, relative to the desktop container
+ * (or the viewport when a window is used without a desktop).
+ */
+export interface Rect extends Size {
+  x: number;
+  y: number;
 }

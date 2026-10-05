@@ -1,0 +1,35 @@
+@if (visible()) {
+  @if (modal()) {
+    <div class="omni-dialog-overlay" animate.enter="omni-fade-in" animate.leave="omni-fade-out"></div>
+  }
+  <div
+    class="omni-dialog"
+    role="dialog"
+    [attr.aria-modal]="modal()"
+    [attr.aria-labelledby]="titleId"
+    animate.enter="omni-dialog-in"
+    animate.leave="omni-dialog-out"
+  >
+    <div class="omni-window-header">
+      <span class="omni-window-title" [id]="titleId">
+        <ng-content select="[omniWindowHeader]" />
+        @if (!customHeader()) {
+          {{ header() }}
+        }
+      </span>
+      @if (closable()) {
+        <div class="omni-window-buttons">
+          <button type="button" class="omni-window-button" aria-label="Close" (click)="close()">
+            <omni-close-icon />
+          </button>
+        </div>
+      }
+    </div>
+    <div class="omni-window-content">
+      <ng-content />
+    </div>
+    <div class="omni-window-footer" [hidden]="!customFooter()">
+      <ng-content select="[omniWindowFooter]" />
+    </div>
+  </div>
+}

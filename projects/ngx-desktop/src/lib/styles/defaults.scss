@@ -1,0 +1,204 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+/**
+ * @publicApi
+ * @description
+ * Theming property declarations. Every variable can be overridden by consumers
+ * on any ancestor element (or the component itself). Keep this file in sync with
+ * the Styling table in the README.
+ *
+ * Declarations are grouped in mixins so each component only ships the ones it uses
+ * (keeps component styles inside the default Angular style budget).
+ */
+
+@mixin window-properties {
+  @property --omni-window-width {
+    syntax: '<length-percentage>';
+    inherits: true;
+    initial-value: 50%;
+  }
+
+  @property --omni-window-height {
+    syntax: '<length-percentage>';
+    inherits: true;
+    initial-value: 50%;
+  }
+
+  @property --omni-window-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(49, 31, 49);
+  }
+
+  @property --omni-window-border-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: grey;
+  }
+
+  @property --omni-window-border-width {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 1px;
+  }
+
+  @property --omni-window-border-radius {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 20px;
+  }
+
+  @property --omni-window-header-height {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 30px;
+  }
+
+  @property --omni-window-header-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #40303f;
+  }
+
+  @property --omni-window-header-text-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(200, 193, 193);
+  }
+
+  @property --omni-window-header-font-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 18px;
+  }
+
+  @property --omni-window-header-font-weight {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 200;
+  }
+
+  @property --omni-window-content-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(200, 193, 193);
+  }
+
+  @property --omni-window-content-padding {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 5px;
+  }
+
+  @property --omni-window-icon-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 24px;
+  }
+
+  @property --omni-window-button-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 20px;
+  }
+
+  @property --omni-window-resize-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: grey;
+  }
+
+  @property --omni-window-collapsed-width {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 105px;
+  }
+
+  @property --omni-window-transition-duration {
+    syntax: '<time>';
+    inherits: true;
+    initial-value: 300ms;
+  }
+}
+
+@mixin dialog-properties {
+  @property --omni-dialog-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(86, 60, 86);
+  }
+
+  @property --omni-dialog-overlay-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(0, 0, 0, 0.4);
+  }
+
+  @property --omni-dialog-width {
+    syntax: '<length-percentage>';
+    inherits: true;
+    initial-value: 40%;
+  }
+
+  @property --omni-dialog-max-height {
+    syntax: '<length-percentage>';
+    inherits: true;
+    initial-value: 80%;
+  }
+}
+
+@mixin dock-properties {
+  @property --omni-dock-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #18171780;
+  }
+
+  @property --omni-dock-tab-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #11010180;
+  }
+
+  @property --omni-dock-tab-hover-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: black;
+  }
+
+  @property --omni-dock-active-tab-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #43393980;
+  }
+
+  @property --omni-dock-text-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: grey;
+  }
+
+  @property --omni-dock-tab-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 40px;
+  }
+
+  @property --omni-dock-border-radius {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 20px;
+  }
+
+  @property --omni-dock-padding {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 5px;
+  }
+}

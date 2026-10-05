@@ -1,0 +1,196 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+@use '../../styles/window-chrome';
+@use '../../styles/defaults';
+@use '../../styles/themes';
+
+@include defaults.window-properties;
+@include themes.themes(window);
+
+:host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: var(--omni-window-width);
+  height: var(--omni-window-height);
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  background: var(--omni-window-background);
+  border: var(--omni-window-border-width) solid var(--omni-window-border-color);
+  border-radius: var(--omni-window-border-radius);
+  pointer-events: auto;
+  opacity: 1;
+  scale: 1;
+  visibility: visible;
+  transform-origin: center bottom;
+  transition:
+    opacity var(--omni-window-transition-duration),
+    scale var(--omni-window-transition-duration),
+    visibility 0s;
+  animation: omni-window-open var(--omni-window-transition-duration);
+}
+
+:host(.omni-window-standalone) {
+  position: fixed;
+}
+
+:host(.omni-window-measuring) {
+  visibility: hidden;
+  animation: none;
+}
+
+// Closed, or minimized into the dock: fade/shrink out, then stop taking part in layout and input.
+:host(.omni-window-away) {
+  opacity: 0;
+  scale: 0.2;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--omni-window-transition-duration),
+    scale var(--omni-window-transition-duration),
+    visibility 0s linear var(--omni-window-transition-duration);
+}
+
+:host(.omni-window-interacting) {
+  transition: none;
+  user-select: none;
+}
+
+:host(.omni-window-maximized) {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+:host(.omni-window-full-screen) {
+  border-radius: 0;
+}
+
+:host(.omni-window-collapsed) {
+  width: var(--omni-window-collapsed-width);
+  height: calc(var(--omni-window-header-height) + 2 * var(--omni-window-border-width));
+  min-height: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@include window-chrome.window-chrome;
+
+.omni-window-header-draggable {
+  cursor: move;
+}
+
+:host(.omni-window-collapsed) .omni-window-header {
+  padding: 0 10px;
+}
+
+.omni-window-move-icon {
+  width: var(--omni-window-button-size);
+  height: var(--omni-window-button-size);
+}
+
+// ---------------------------------------------------------------- resize handles
+$edge: 6px;
+$corner: 14px;
+
+.omni-resize-handle {
+  position: absolute;
+  z-index: 1;
+}
+
+.omni-resize-n,
+.omni-resize-s {
+  left: $corner;
+  right: $corner;
+  height: $edge;
+  cursor: ns-resize;
+}
+
+.omni-resize-e,
+.omni-resize-w {
+  top: $corner;
+  bottom: $corner;
+  width: $edge;
+  cursor: ew-resize;
+}
+
+.omni-resize-n {
+  top: 0;
+}
+
+.omni-resize-s {
+  bottom: 0;
+}
+
+.omni-resize-e {
+  right: 0;
+}
+
+.omni-resize-w {
+  left: 0;
+}
+
+.omni-resize-ne,
+.omni-resize-nw,
+.omni-resize-se,
+.omni-resize-sw {
+  width: $corner;
+  height: $corner;
+}
+
+.omni-resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.omni-resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.omni-resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.omni-resize-se {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+  // The grip sits inside the rounded corner, like the original sgm window.
+  width: calc($corner + var(--omni-window-border-radius) / 2);
+  height: calc($corner + var(--omni-window-border-radius) / 2);
+}
+
+.omni-resize-grip {
+  position: absolute;
+  right: calc(var(--omni-window-border-radius) / 4);
+  bottom: calc(var(--omni-window-border-radius) / 4);
+  width: 12px;
+  height: 12px;
+  color: var(--omni-window-resize-color);
+}
+
+@keyframes omni-window-open {
+  from {
+    opacity: 0;
+    scale: 0.95;
+  }
+}

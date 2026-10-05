@@ -1,1 +1,93 @@
-<h1>{{ title() }}</h1>
+<header class="toolbar">
+  <h1>ngx-desktop</h1>
+
+  <label>
+    Theme
+    <select [value]="theme()" (change)="setTheme($event)">
+      @for (option of themes; track option) {
+        <option [value]="option">{{ option }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Dock
+    <select [value]="dock()" (change)="setDock($event)">
+      @for (option of docks; track option) {
+        <option [value]="option">{{ option }}</option>
+      }
+    </select>
+  </label>
+
+  <label><input type="checkbox" [checked]="modal()" (change)="modal.set(!modal())" /> Modal dialog</label>
+  <button type="button" (click)="dialogOpen.set(true)">Open dialog</button>
+  <button type="button" (click)="standaloneOpen.set(!standaloneOpen())">Toggle standalone window</button>
+  <button type="button" [disabled]="notesOpen()" (click)="notesOpen.set(true)">Reopen "Notes"</button>
+
+  <ol class="log" aria-label="Event log">
+    @for (entry of log(); track $index) {
+      <li>{{ entry }}</li>
+    }
+  </ol>
+</header>
+
+<main class="workspace">
+  <omni-desktop [theme]="theme()" [dock]="dock()">
+    <omni-window
+      header="Angular"
+      icon="icons/angular.svg"
+      position="topleft"
+      (dragEnd)="record('Angular dragged to ' + $event.x + ', ' + $event.y)"
+      (resizeEnd)="record('Angular resized to ' + $event.width + ' × ' + $event.height)"
+    >
+      <h2>Angular</h2>
+      <p>Drag me by the header, resize me from any edge or corner, double-click the header to maximize.</p>
+    </omni-window>
+
+    <omni-window header="Nest" icon="icons/nest.svg" position="right" theme="neo-tokyo" [width]="360" [height]="240">
+      <p>This window always uses the <code>neo-tokyo</code> theme, whatever the desktop theme is.</p>
+    </omni-window>
+
+    <omni-window
+      header="Notes"
+      position="bottom"
+      [minWidth]="220"
+      [minHeight]="140"
+      [(visible)]="notesOpen"
+      (closed)="record('Notes closed')"
+    >
+      <span omniWindowHeader>📝 <b>Notes</b> (custom header)</span>
+      <p>No icon, so the dock tab shows the header text. Minimum size is 220 × 140.</p>
+      <div omniWindowFooter>
+        <button type="button" (click)="record('Notes: saved')">Save</button>
+      </div>
+    </omni-window>
+  </omni-desktop>
+</main>
+
+@if (standaloneOpen()) {
+  <omni-window
+    header="Standalone"
+    icon="icons/react.svg"
+    position="center"
+    [width]="320"
+    [height]="200"
+    (closed)="standaloneOpen.set(false)"
+  >
+    <p>Not inside a desktop: positioned in the viewport, minimizes to a small title bar.</p>
+  </omni-window>
+}
+
+<omni-dialog
+  [(visible)]="dialogOpen"
+  header="Dialog"
+  [modal]="modal()"
+  [theme]="theme()"
+  (closed)="record('Dialog closed')"
+>
+  <p>Close with the button, Escape, or the footer buttons.</p>
+  <div omniWindowFooter>
+    <button type="button" (click)="dialogOpen.set(false)">Cancel</button>
+    <button type="button" (click)="record('Dialog confirmed'); dialogOpen.set(false)">Confirm</button>
+  </div>
+</omni-dialog>

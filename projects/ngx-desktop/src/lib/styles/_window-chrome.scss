@@ -1,0 +1,91 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+/**
+ * @internal
+ * @description
+ * Header, content, footer and header-button styles shared by the window and the dialog.
+ */
+@mixin window-chrome {
+  .omni-window-header {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: var(--omni-window-header-height);
+    padding: 0 10px 0 20px;
+    background: var(--omni-window-header-background);
+    color: var(--omni-window-header-text-color);
+    font-size: var(--omni-window-header-font-size);
+    font-weight: var(--omni-window-header-font-weight);
+    user-select: none;
+  }
+
+  .omni-window-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .omni-window-icon {
+    max-width: var(--omni-window-icon-size);
+    max-height: var(--omni-window-icon-size);
+  }
+
+  .omni-window-buttons {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .omni-window-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--omni-window-button-size);
+    height: var(--omni-window-button-size);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.75;
+    }
+
+    &:focus-visible {
+      outline: 1px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+
+  .omni-window-content {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: var(--omni-window-content-padding);
+    color: var(--omni-window-content-color);
+  }
+
+  .omni-window-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 8px;
+    padding: var(--omni-window-content-padding) 20px;
+    color: var(--omni-window-content-color);
+  }
+}

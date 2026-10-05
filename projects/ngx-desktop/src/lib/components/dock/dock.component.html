@@ -1,0 +1,17 @@
+@for (window of desktop.openWindows(); track window.id) {
+  <button
+    type="button"
+    class="omni-dock-tab"
+    [class.omni-dock-tab-minimized]="window.minimized()"
+    [class.omni-dock-tab-focused]="desktop.focusedId() === window.id && !window.minimized()"
+    [attr.aria-label]="window.header() || 'Window'"
+    [attr.title]="window.header() || null"
+    (click)="activate(window)"
+  >
+    @if (window.icon(); as src) {
+      <img class="omni-dock-icon" [src]="src" alt="" />
+    } @else {
+      <span class="omni-dock-label">{{ window.header() }}</span>
+    }
+  </button>
+}

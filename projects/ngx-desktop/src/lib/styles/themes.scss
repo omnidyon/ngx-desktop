@@ -1,0 +1,131 @@
+/**
+ * @license
+ * Copyright Slavko Mihajlovic All Rights Reserved.
+ *
+ * Use of this source code is governed by an ISC-style license that can be
+ * found at https://www.isc.org/licenses/
+ */
+
+/**
+ * @publicApi
+ * @description
+ * Theme presets, applied with the `theme` input of `<omni-desktop>`, `<omni-window>` and
+ * `<omni-dialog>`. A theme only reassigns `--omni-*` variables, so it is inherited by
+ * everything inside the themed element. `default` restores the built-in values, which is
+ * useful for a single window inside a themed desktop.
+ */
+@use 'sass:string';
+
+$themes: (
+  'default': (
+    window-background: rgb(49, 31, 49),
+    window-header-background: #40303f,
+    window-border-color: grey,
+    window-header-text-color: rgb(200, 193, 193),
+    window-content-color: rgb(200, 193, 193),
+    window-resize-color: grey,
+    dialog-background: rgb(86, 60, 86),
+    dock-background: #18171780,
+    dock-tab-background: #11010180,
+    dock-active-tab-background: #43393980,
+    dock-text-color: grey,
+  ),
+  'aqua': (
+    window-background: rgba(236, 254, 250, 0.9),
+    window-header-background: rgb(130, 255, 243),
+    window-border-color: transparent,
+    window-header-text-color: rgb(40, 43, 48),
+    window-content-color: rgb(40, 43, 48),
+    window-resize-color: rgb(40, 43, 48),
+    dialog-background: rgba(236, 254, 250, 0.9),
+    dock-background: rgb(173, 255, 243),
+    dock-tab-background: rgb(236, 254, 250),
+    dock-active-tab-background: #43393980,
+    dock-text-color: rgb(40, 43, 48),
+  ),
+  'discord': (
+    window-background: rgba(66, 69, 73, 0.9),
+    window-header-background: #7289da,
+    window-border-color: transparent,
+    window-header-text-color: white,
+    window-content-color: white,
+    window-resize-color: white,
+    dialog-background: rgba(66, 69, 73, 0.9),
+    dock-background: rgba(114, 137, 218, 0.8),
+    dock-tab-background: rgba(30, 33, 36, 0.8),
+    dock-active-tab-background: rgba(66, 69, 73, 0.8),
+    dock-text-color: grey,
+  ),
+  'light': (
+    window-background: rgb(231, 230, 231),
+    window-header-background: #d8d3d3,
+    window-border-color: rgb(186, 172, 172),
+    window-header-text-color: rgb(80, 72, 72),
+    window-content-color: rgb(80, 72, 72),
+    window-resize-color: grey,
+    dialog-background: rgb(231, 230, 231),
+    dock-background: #b6b4b4c5,
+    dock-tab-background: #11010180,
+    dock-active-tab-background: #43393980,
+    dock-text-color: grey,
+  ),
+  'neo-san-francisco': (
+    window-background: rgb(0, 0, 44),
+    window-header-background: rgb(252, 228, 57),
+    window-border-color: rgb(50, 19, 122),
+    window-header-text-color: rgb(0, 0, 44),
+    window-content-color: white,
+    window-resize-color: rgb(0, 0, 44),
+    dialog-background: rgb(0, 0, 44),
+    dock-background: rgb(98, 59, 188),
+    dock-tab-background: rgb(249, 146, 251),
+    dock-active-tab-background: rgb(252, 228, 57),
+    dock-text-color: rgb(0, 0, 44),
+  ),
+  'neo-tokyo': (
+    window-background: rgb(62, 61, 74),
+    window-header-background: rgb(194, 107, 255),
+    window-border-color: rgb(158, 248, 159),
+    window-header-text-color: rgb(158, 248, 159),
+    window-content-color: rgb(236, 254, 250),
+    window-resize-color: rgb(158, 248, 159),
+    dialog-background: rgb(62, 61, 74),
+    dock-background: rgb(158, 248, 159),
+    dock-tab-background: rgb(114, 121, 123),
+    dock-active-tab-background: rgb(194, 107, 255),
+    dock-text-color: rgb(40, 43, 48),
+  ),
+  'twitch': (
+    window-background: rgba(255, 255, 255, 0.8),
+    window-header-background: #9146ff,
+    window-border-color: #772ce8,
+    window-header-text-color: white,
+    window-content-color: rgb(80, 72, 72),
+    window-resize-color: white,
+    dialog-background: rgba(255, 255, 255, 0.8),
+    dock-background: rgba(143, 69, 255, 0.79),
+    dock-tab-background: #11010180,
+    dock-active-tab-background: #43393980,
+    dock-text-color: grey,
+  ),
+);
+
+/**
+ * @internal
+ * @description
+ * Emits the theme classes for the host, limited to the variable groups the component uses
+ * (`window`, `dialog`, `dock`).
+ */
+@mixin themes($groups...) {
+  @each $name, $values in $themes {
+    :host(.omni-theme-#{$name}) {
+      @each $variable, $value in $values {
+        @each $group in $groups {
+          @if string.index($variable, '#{$group}-') == 1 {
+            --omni-#{$variable}: #{$value};
+          }
+        }
+      }
+    }
+  }
+}
