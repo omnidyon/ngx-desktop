@@ -62,3 +62,29 @@ export interface Rect extends Size {
   x: number;
   y: number;
 }
+
+/**
+ * @publicApi
+ * @description
+ * How `tile()` arranges windows: `'auto'` a grid, `'columns'` side by side, `'rows'` stacked.
+ */
+export type TileMode = 'auto' | 'columns' | 'rows';
+
+/**
+ * @publicApi
+ * @description
+ * A window of a desktop, as listed by `DesktopComponent.windows()`.
+ */
+export interface DesktopWindowInfo {
+  /** Generated id; pass it to `focus(id)`. */
+  readonly id: string;
+  readonly header: string;
+  /** `false` once closed. */
+  readonly visible: boolean;
+  readonly minimized: boolean;
+  readonly maximized: boolean;
+  /** Position and size in px relative to the desktop; `null` until placed. */
+  readonly rect: Rect | null;
+  readonly widget: boolean;
+  readonly persistKey: string | undefined;
+}

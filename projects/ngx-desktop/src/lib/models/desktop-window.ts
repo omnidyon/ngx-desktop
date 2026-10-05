@@ -24,6 +24,17 @@ export interface DesktopWindow {
   readonly maximized: Signal<boolean>;
   /** Whether the window gets a dock tab (widgets do not). */
   readonly dockable: Signal<boolean>;
+  readonly widget: Signal<boolean>;
+  readonly persistKey: Signal<string | undefined>;
+  readonly minimizable: Signal<boolean>;
+  readonly closable: Signal<boolean>;
+  readonly minWidth: Signal<number>;
+  readonly minHeight: Signal<number>;
   readonly rect: Signal<Rect | null>;
+  /** Shows the window (from minimized or closed) and brings it to the front. */
   restore(): void;
+  minimize(): void;
+  close(): void;
+  /** Puts the window at a rect chosen by the desktop (tile, cascade). */
+  place(rect: Rect): void;
 }

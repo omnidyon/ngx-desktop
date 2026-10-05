@@ -22,7 +22,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 
 ## D. Features
 
-- [ ] 9. Desktop API from code (list, focus, minimize all, show desktop, tile, cascade)
+- [x] 9. Desktop API from code (`#desk="omniDesktop"`, `injectDesktop()`: windows, focus, minimize / restore all, show desktop, close all, tile, cascade)
 - [ ] 10. Snap layouts on the maximize button
 - [ ] 11. Dock extras (positions, badges, tab template, pinned items)
 - [ ] 12. Widget extras (aspect ratio, render content only while visible)

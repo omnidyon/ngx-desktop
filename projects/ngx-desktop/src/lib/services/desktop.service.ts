@@ -8,8 +8,10 @@
 
 import { computed, inject, Injectable, Signal, signal } from '@angular/core';
 import { DESKTOP_CONFIG } from '../config/desktop-config';
+import { cascadeRects, tileRects } from '../geometry/arrange';
+import { fitWithoutOverlap } from '../geometry/fit';
 import { DesktopWindow } from '../models/desktop-window';
-import { Rect, Size } from '../models/types';
+import { Rect, Size, TileMode } from '../models/types';
 
 /**
  * @internal
@@ -26,6 +28,9 @@ export interface DesktopSettings {
 
 /** @internal */
 export const DEFAULT_SNAP_THRESHOLD = 16;
+
+/** @internal How far each cascaded window is moved right and down from the previous one. */
+export const CASCADE_STEP = 32;
 
 /** @internal */
 export interface SnapPreview {
@@ -53,6 +58,8 @@ export class DesktopService {
   private readonly _snapPreview = signal<SnapPreview | null>(null);
   private readonly _size = signal<Size>({ width: 0, height: 0 });
   private readonly _shownCount = signal(0);
+  /** Windows minimized by `toggleShowDesktop()`, bottom to top. */
+  private readonly _hiddenForDesktop = signal<readonly DesktopWindow[]>([]);
   /** The last measurement was 0 × 0 (the desktop is hidden). */
   private measuredHidden = false;
 
@@ -82,6 +89,10 @@ export class DesktopService {
   readonly shownCount = this._shownCount.asReadonly();
   /** Where a dragged window would snap to; shown as an overlay by the desktop. */
   readonly snapPreview = this._snapPreview.asReadonly();
+  /** Whether `toggleShowDesktop()` hid windows that are still minimized. */
+  readonly showingDesktop = computed(() =>
+    this._hiddenForDesktop().some((w) => w.visible() && w.minimized() && this._windows().includes(w))
+  );
 
   attachContainer(element: HTMLElement): void {
     this.container = element;
@@ -182,6 +193,104 @@ export class DesktopService {
     this._stack.update((stack) =>
       stack.includes(id) && stack.at(-1) !== id ? [...stack.filter((s) => s !== id), id] : stack
     );
+  }
+
+  /** Shows a window (from minimized or closed) and brings it to the front. Unknown ids are ignored. */
+  focusWindow(id: string): void {
+    this._windows()
+      .find((w) => w.id === id)
+      ?.restore();
+  }
+
+  /** Minimizes every open window that can be (widgets stay); returns the ones it minimized, bottom to top. */
+  minimizeAll(): DesktopWindow[] {
+    const minimized = this.byStack(this.dockWindows()).filter((w) => !w.minimized() && w.minimizable());
+    for (const window of minimized) window.minimize();
+    return minimized;
+  }
+
+  /** Restores every minimized window, keeping their stacking order. */
+  restoreAll(): void {
+    this._hiddenForDesktop.set([]);
+    for (const window of this.byStack(this.openWindows())) {
+      if (window.minimized()) window.restore();
+    }
+  }
+
+  /** Minimizes all windows; the next call restores the ones it minimized (and that are still minimized). */
+  toggleShowDesktop(): void {
+    if (this.showingDesktop()) {
+      const hidden = this._hiddenForDesktop();
+      this._hiddenForDesktop.set([]);
+      for (const window of hidden) {
+        if (window.visible() && window.minimized()) window.restore();
+      }
+    } else {
+      this._hiddenForDesktop.set(this.minimizeAll());
+    }
+  }
+
+  /** Closes every open window and widget that is `closable`. */
+  closeAll(): void {
+    for (const window of this.openWindows()) {
+      if (window.closable()) window.close();
+    }
+  }
+
+  /**
+   * Arranges the open windows (not widgets, not minimized) over the desktop, in dock order, keeping
+   * `snapPadding` between them. When overlap is not allowed, tiles also make room for widgets.
+   */
+  tile(mode: TileMode = 'auto'): void {
+    const windows = this.arrangeable();
+    if (!windows.length || this.isHidden()) return;
+    const bounds = this.bounds();
+    const gap = this.settings.snapPadding();
+    const rects = tileRects(windows.length, bounds, mode, gap);
+    const widgets = this.settings.allowOverlap()
+      ? []
+      : this.openWindows()
+          .filter((w) => w.widget())
+          .map((w) => w.rect())
+          .filter((rect): rect is Rect => !!rect);
+    const placed: Rect[] = [];
+    windows.forEach((window, i) => {
+      const minSize = { width: window.minWidth(), height: window.minHeight() };
+      const rect = widgets.length
+        ? (fitWithoutOverlap(rects[i], [...widgets, ...placed], bounds, minSize, gap) ?? rects[i])
+        : rects[i];
+      window.place(rect);
+      placed.push(window.rect() ?? rect);
+    });
+  }
+
+  /**
+   * Stacks the open windows (not widgets, not minimized) diagonally from the top-left, in stacking
+   * order, each keeping its size. Cascaded windows overlap, so this does nothing (and returns `false`)
+   * when the desktop does not allow overlap.
+   */
+  cascade(): boolean {
+    if (!this.settings.allowOverlap()) return false;
+    const windows = this.byStack(this.arrangeable());
+    if (!windows.length || this.isHidden()) return true;
+    const sizes = windows.map((w) => {
+      const rect = w.rect();
+      return { width: rect?.width ?? 0, height: rect?.height ?? 0 };
+    });
+    const rects = cascadeRects(sizes, this.bounds(), CASCADE_STEP, this.settings.snapPadding());
+    windows.forEach((window, i) => window.place(rects[i]));
+    return true;
+  }
+
+  /** Windows tile and cascade move: shown, not minimized, not widgets. */
+  private arrangeable(): DesktopWindow[] {
+    return this.dockWindows().filter((w) => !w.minimized());
+  }
+
+  /** The windows sorted bottom to top. */
+  private byStack(windows: readonly DesktopWindow[]): DesktopWindow[] {
+    const stack = this._stack();
+    return [...windows].sort((a, b) => stack.indexOf(a.id) - stack.indexOf(b.id));
   }
 
   /** Reactive z-index of a window; read it inside a computed or template. */

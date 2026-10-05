@@ -17,11 +17,12 @@ import {
   inject,
   input,
   numberAttribute,
+  Signal,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
-import { DesktopTheme, DockPosition } from '../../models/types';
+import { DesktopTheme, DesktopWindowInfo, DockPosition, TileMode } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
 
 /**
@@ -44,14 +45,20 @@ import { DockComponent } from '../dock/dock.component';
  * opened or restored onto another one adjusts to fit beside it (keeping `snapPadding` as the gap);
  * the other windows never move. Maximize and full screen are exempt.
  *
+ * From code: `windows()`, `focus(id)`, `minimizeAll()`, `restoreAll()`, `toggleShowDesktop()`,
+ * `closeAll()`, `tile()` and `cascade()`. Reach the desktop with a template reference
+ * (`#desk="omniDesktop"`), `viewChild(DesktopComponent)`, or `injectDesktop()` inside it.
+ *
  * @usageNotes
- * <omni-desktop theme="neo-tokyo" dock="bottom" [snapThreshold]="20">
+ * <omni-desktop #desk="omniDesktop" theme="neo-tokyo" dock="bottom" [snapThreshold]="20">
  *   <omni-window header="Win 1" position="topleft">...</omni-window>
  *   <omni-window header="Win 2" position="right">...</omni-window>
  * </omni-desktop>
+ * <button (click)="desk.tile()">Tile</button>
  */
 @Component({
   selector: 'omni-desktop',
+  exportAs: 'omniDesktop',
   imports: [DockComponent],
   providers: [DesktopService],
   templateUrl: './desktop.component.html',
@@ -81,6 +88,65 @@ export class DesktopComponent {
   readonly snapPadding = input(0, { transform: numberAttribute });
   /** When `false`, windows are kept from overlapping: the window being placed adjusts to fit. */
   readonly allowOverlap = input(true, { transform: booleanAttribute });
+
+  /** Every window and widget of the desktop, in the order they were added (closed ones included). */
+  readonly windows: Signal<readonly DesktopWindowInfo[]> = computed(() =>
+    this.service.windows().map((window) => ({
+      id: window.id,
+      header: window.header(),
+      visible: window.visible(),
+      minimized: window.minimized(),
+      maximized: window.maximized(),
+      rect: window.rect(),
+      widget: window.widget(),
+      persistKey: window.persistKey(),
+    }))
+  );
+  /** Id of the window in front, or `null` when there are none. */
+  readonly focusedId: Signal<string | null> = this.service.focusedId;
+  /** Whether `toggleShowDesktop()` hid windows that are still minimized. */
+  readonly showingDesktop: Signal<boolean> = this.service.showingDesktop;
+
+  /** Shows a window (restoring it when minimized or closed) and brings it to the front. */
+  focus(id: string): void {
+    this.service.focusWindow(id);
+  }
+
+  /** Minimizes every window that is `minimizable` (widgets stay). */
+  minimizeAll(): void {
+    this.service.minimizeAll();
+  }
+
+  /** Restores every minimized window. */
+  restoreAll(): void {
+    this.service.restoreAll();
+  }
+
+  /** Minimizes all windows ("show desktop"); calling it again restores the ones it minimized. */
+  toggleShowDesktop(): void {
+    this.service.toggleShowDesktop();
+  }
+
+  /** Closes every window and widget that is `closable`. */
+  closeAll(): void {
+    this.service.closeAll();
+  }
+
+  /**
+   * Arranges the open windows (not widgets or minimized ones) over the desktop, in dock order,
+   * `snapPadding` apart: `'auto'` a grid, `'columns'` side by side, `'rows'` stacked.
+   */
+  tile(mode: TileMode = 'auto'): void {
+    this.service.tile(mode);
+  }
+
+  /**
+   * Stacks the open windows diagonally from the top-left, each keeping its size. Does nothing and
+   * returns `false` when the desktop does not allow overlap.
+   */
+  cascade(): boolean {
+    return this.service.cascade();
+  }
 
   protected readonly dockPosition = computed(() => {
     const dock = this.dock();

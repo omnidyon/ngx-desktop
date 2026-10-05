@@ -23,4 +23,5 @@ export * from './lib/directives/draggable.directive';
 export * from './lib/directives/window-slots.directive';
 export * from './lib/components/window/window.component';
 export * from './lib/components/desktop/desktop.component';
+export * from './lib/components/desktop/inject-desktop';
 export * from './lib/components/dialog/dialog.component';

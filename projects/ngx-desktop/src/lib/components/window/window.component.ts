@@ -396,6 +396,26 @@ export class WindowComponent implements DesktopWindow {
     this.closed.emit();
   }
 
+  /** Minimizes the window (into the dock inside a desktop); nothing happens when it is not `minimizable`. */
+  minimize(): void {
+    if (!this.minimizable() || this.minimized()) return;
+    this.minimized.set(true);
+    this.maximized.set(false);
+  }
+
+  /**
+   * @internal
+   * Puts the window at a rect chosen by its desktop (tile, cascade): not maximized or snapped any more,
+   * within its size limits. Overlap is the desktop's job here, so the rect is not fitted around others.
+   */
+  place(rect: Rect): void {
+    this.leaveZone(true);
+    this.maximized.set(false);
+    const bounds = this.bounds();
+    const limited = this.limit(rect, bounds);
+    this.setRect(this.keepInBounds() ? clampRect(limited, bounds) : limited);
+  }
+
   toggleMinimize(): void {
     if (!this.minimizable()) return;
     this.minimized.update((minimized) => !minimized);

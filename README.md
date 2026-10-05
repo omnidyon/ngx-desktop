@@ -238,6 +238,43 @@ The animation length is `--omni-window-transition-duration` (see _Styling_).
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Desktop API</b></summary>
+
+A desktop can be controlled from code. Reach it with a template reference, `viewChild`, or `injectDesktop()` in a
+component inside it (for example a toolbar in a window):
+
+<!-- prettier-ignore -->
+```html
+<omni-desktop #desk="omniDesktop">...</omni-desktop>
+<button (click)="desk.tile()">Tile</button>
+<button (click)="desk.toggleShowDesktop()">{{ desk.showingDesktop() ? 'Bring back' : 'Show desktop' }}</button>
+```
+
+```ts
+readonly desktop = viewChild.required(DesktopComponent);
+// or, inside the desktop:
+readonly desktop = injectDesktop(); // injectDesktop({ optional: true }) returns null outside one
+```
+
+| Member                | What it does                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `windows()`           | signal: every window and widget (`id`, `header`, `visible`, `minimized`, `maximized`, `rect`, `widget`, `persistKey`) |
+| `focusedId()`         | signal: id of the window in front                                                                                     |
+| `focus(id)`           | shows a window (restoring it when minimized or closed) and brings it to the front                                     |
+| `minimizeAll()`       | minimizes every `minimizable` window; widgets stay                                                                    |
+| `restoreAll()`        | restores every minimized window                                                                                       |
+| `toggleShowDesktop()` | minimizes all windows; the next call restores the ones it minimized                                                   |
+| `showingDesktop()`    | signal: windows hidden by `toggleShowDesktop()` are still minimized                                                   |
+| `closeAll()`          | closes every `closable` window and widget                                                                             |
+| `tile(mode?)`         | arranges the open windows: `'auto'` (grid, default), `'columns'`, `'rows'`                                            |
+| `cascade()`           | stacks the open windows diagonally, keeping their sizes; returns `false` when overlap is off                          |
+
+`tile` and `cascade` move open windows only: not widgets, not minimized ones. They keep `snapPadding` between windows,
+respect each window's size limits and un-maximize windows. With `allowOverlap` off, tiles make room for widgets, and
+`cascade` does nothing (cascaded windows overlap by design).
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Keyboard</b></summary>
 
 Every window's title bar (a widget's grip) is a tab stop. Focus moving into a window brings it to the front. On a

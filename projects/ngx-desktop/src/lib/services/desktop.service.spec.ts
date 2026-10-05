@@ -15,7 +15,16 @@ function fakeWindow(id: string, visible = true): DesktopWindow & { visible: Retu
     maximized: signal(false),
     dockable: signal(true),
     rect: signal<Rect | null>(null),
+    widget: signal(false),
+    persistKey: signal<string | undefined>(undefined),
+    minimizable: signal(true),
+    closable: signal(true),
+    minWidth: signal(130),
+    minHeight: signal(65),
     restore: vi.fn(),
+    minimize: vi.fn(),
+    close: vi.fn(),
+    place: vi.fn(),
   };
 }
 
