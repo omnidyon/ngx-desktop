@@ -59,7 +59,7 @@ export class App {
     'neo-tokyo',
     'twitch',
   ];
-  protected readonly docks: DockPosition[] = ['bottom', 'top', 'none'];
+  protected readonly docks: DockPosition[] = ['bottom', 'top', 'left', 'right', 'none'];
   protected readonly arrangeTargets: ArrangeTarget[] = ['all', 'windows', 'widgets'];
   protected readonly arrangeTarget = signal<ArrangeTarget>('all');
 
@@ -69,6 +69,8 @@ export class App {
   protected readonly modal = signal(true);
   protected readonly standaloneOpen = signal(false);
   protected readonly notesOpen = signal(true);
+  /** Shown on the Angular dock tab; cleared when the window is clicked. */
+  protected readonly angularBadge = signal(0);
   protected readonly snapToZones = signal(true);
   protected readonly snapToWindows = signal(true);
   protected readonly snapLayouts = signal(true);

@@ -12,7 +12,7 @@
 }
 <ng-content />
 @if (dockPosition(); as position) {
-  <omni-dock [position]="position" />
+  <omni-dock [position]="position" [tabTemplate]="dockTab()?.template ?? null" />
 }
 @if (service.layoutPicker(); as picker) {
   <omni-snap-layouts [picker]="picker" />

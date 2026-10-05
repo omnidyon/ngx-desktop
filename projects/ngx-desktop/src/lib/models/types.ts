@@ -53,9 +53,29 @@ export type LayoutZone = Exclude<SnapZone, 'maximize'>;
 /**
  * @publicApi
  * @description
- * Where the dock (taskbar) of a desktop is rendered. `none` hides it.
+ * Where the dock (taskbar) of a desktop is rendered: along an edge (`left` / `right` stack the tabs
+ * vertically), or `none` to hide it.
  */
-export type DockPosition = 'bottom' | 'top' | 'none';
+export type DockPosition = 'bottom' | 'top' | 'left' | 'right' | 'none';
+
+/**
+ * @publicApi
+ * @description
+ * What a custom dock tab template (`<ng-template omniDockTab let-tab>`) gets for each tab.
+ */
+export interface DockTabContext {
+  readonly id: string;
+  readonly header: string;
+  readonly icon: string | undefined;
+  /** Shown on the tab, e.g. an unread count; `null` when there is none. */
+  readonly badge: string | number | null;
+  readonly minimized: boolean;
+  /** The window is in front. */
+  readonly focused: boolean;
+  /** The window is closed and only kept in the dock because it is `pinned`. */
+  readonly closed: boolean;
+  readonly pinned: boolean;
+}
 
 /**
  * @publicApi
@@ -124,4 +144,6 @@ export interface DesktopWindowInfo {
   readonly rect: Rect | null;
   readonly widget: boolean;
   readonly persistKey: string | undefined;
+  readonly badge: string | number | null;
+  readonly pinned: boolean;
 }

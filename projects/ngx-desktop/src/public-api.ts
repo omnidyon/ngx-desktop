@@ -21,6 +21,7 @@ export * from './lib/session/session-storage';
 export * from './lib/session/desktop-session';
 export * from './lib/directives/draggable.directive';
 export * from './lib/directives/window-slots.directive';
+export * from './lib/directives/dock-tab.directive';
 export * from './lib/components/window/window.component';
 export * from './lib/components/desktop/desktop.component';
 export * from './lib/components/desktop/inject-desktop';

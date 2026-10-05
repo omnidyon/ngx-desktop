@@ -12,6 +12,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  contentChild,
   DestroyRef,
   ElementRef,
   inject,
@@ -24,6 +25,8 @@ import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
 import { ArrangeOptions, DesktopTheme, DesktopWindowInfo, DockPosition, TileMode } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
+import { shownBadge } from '../../utils/badge';
+import { DockTabDirective } from '../../directives/dock-tab.directive';
 import { SnapLayoutsComponent } from '../snap-layouts/snap-layouts.component';
 
 /**
@@ -77,7 +80,10 @@ export class DesktopComponent {
 
   /** Theme preset for the desktop, its dock and every window in it. */
   readonly theme = input<DesktopTheme>();
-  /** Where the dock is shown; `none` hides it. */
+  /** A custom dock tab template (`<ng-template omniDockTab let-tab>`) projected into the desktop. */
+  protected readonly dockTab = contentChild(DockTabDirective);
+
+  /** Where the dock is shown (`bottom`, `top`, `left`, `right`); `none` hides it. */
   readonly dock = input<DockPosition>('bottom');
   /** Snap windows to halves, quarters or maximized when dragged to an edge or corner. */
   readonly snapToZones = input(true, { transform: booleanAttribute });
@@ -106,6 +112,8 @@ export class DesktopComponent {
       rect: window.rect(),
       widget: window.widget(),
       persistKey: window.persistKey(),
+      badge: shownBadge(window.badge()),
+      pinned: window.pinned(),
     }))
   );
   /** Id of the window in front, or `null` when there are none. */

@@ -75,6 +75,7 @@
         <span>Standalone</span>
       </label>
       <button type="button" class="btn" [disabled]="notesOpen()" (click)="notesOpen.set(true)">Reopen "Notes"</button>
+      <button type="button" class="btn" (click)="angularBadge.set(angularBadge() + 1)">Notify Angular</button>
       <button type="button" class="btn" (click)="resetLayout()">Reset layout</button>
     </div>
   </fieldset>
@@ -135,6 +136,8 @@
       icon="icons/angular.svg"
       position="topleft"
       persistKey="demo-angular"
+      [badge]="angularBadge()"
+      (pointerdown)="angularBadge.set(0)"
       (dragEnd)="record('Angular dragged to ' + $event.x + ', ' + $event.y)"
       (resizeEnd)="record('Angular resized to ' + $event.width + ' × ' + $event.height)"
       (snapped)="record($event ? 'Angular snapped: ' + $event : 'Angular unsnapped')"
@@ -169,6 +172,7 @@
       [minWidth]="220"
       [minHeight]="140"
       persistKey="demo-notes"
+      pinned
       [(rect)]="notesRect"
       [(visible)]="notesOpen"
       (closed)="record('Notes closed')"

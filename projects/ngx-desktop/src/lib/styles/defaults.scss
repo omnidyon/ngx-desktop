@@ -225,6 +225,18 @@
     inherits: true;
     initial-value: 5px;
   }
+
+  @property --omni-dock-badge-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgb(229, 57, 53);
+  }
+
+  @property --omni-dock-badge-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: white;
+  }
 }
 
 @mixin snap-properties {

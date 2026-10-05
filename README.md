@@ -245,6 +245,41 @@ The animation length is `--omni-window-transition-duration` (see _Styling_).
 
 </details>
 
+<details><summary><b style="font-size: 20px;">Dock</b></summary>
+
+Every desktop has a dock with a tab per open window (widgets get none). Clicking a tab restores a minimized window or
+brings it to the front; a minimized window flies into its tab.
+
+| Option                              | Where               | Meaning                                                                              |
+| ----------------------------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| `dock`                              | `<omni-desktop>`    | `'bottom'` (default), `'top'`, `'left'`, `'right'` (tabs stacked) or `'none'`        |
+| `badge`                             | `<omni-window>`     | number or short text on the tab, e.g. an unread count; `null`, `''` and `0` hide it  |
+| `pinned`                            | `<omni-window>`     | keep the tab while the window is closed (dimmed); clicking it opens the window again |
+| `<ng-template omniDockTab let-tab>` | in `<omni-desktop>` | draw the inside of every tab yourself                                                |
+
+<!-- prettier-ignore -->
+```html
+<omni-desktop dock="left">
+  <ng-template omniDockTab let-tab>
+    <img [src]="tab.icon" alt="" />
+    @if (tab.badge !== null) {
+      <span class="my-badge">{{ tab.badge }}</span>
+    }
+  </ng-template>
+
+  <omni-window header="Mail" icon="mail.svg" [badge]="unread()" pinned>...</omni-window>
+</omni-desktop>
+```
+
+The template gets a `DockTabContext`: `id`, `header`, `icon`, `badge` (`null` when hidden), `minimized`, `focused`,
+`closed` and `pinned`. The dock keeps the tab button around it, so clicks, keyboard navigation and the screen reader
+label ("Mail (3)", "Mail, closed") work the same with a custom template.
+
+A pinned window has to stay in the template: closing it only hides it. Windows created with `@for` from a session
+(see _Persisting dynamic windows_) are removed when closed, so they cannot be pinned.
+
+</details>
+
 <details><summary><b style="font-size: 20px;">Desktop API</b></summary>
 
 A desktop can be controlled from code. Reach it with a template reference, `viewChild`, or `injectDesktop()` in a
@@ -344,6 +379,8 @@ provideDesktopConfig({ labels });
 | `exitFullScreen`       | `Exit full screen`                      | full-screen button while full screen                                             |
 | `dock`                 | `Windows`                               | the dock toolbar                                                                 |
 | `untitledWindow`       | `Window`                                | dock tab of a window without a `header`, `{name}` in announcements               |
+| `dockTabBadge`         | `{name} ({badge})`                      | dock tab with a badge                                                            |
+| `dockTabClosed`        | `{name}, closed`                        | dock tab of a closed pinned window                                               |
 | `keyboardHelp`         | `Arrow keys move the window, …`         | read on a focused title bar (see _Keyboard_)                                     |
 | `announceMoved`        | `{name} moved to {x}, {y}`              | after a keyboard move                                                            |
 | `announceResized`      | `{name} resized to {width} by {height}` | after a keyboard resize                                                          |
@@ -400,6 +437,8 @@ values below on the component itself or on any ancestor element (for example `om
 | --omni-dock-tab-size                      | dock tab width and height                                                           | 40px                      |
 | --omni-dock-border-radius                 | dock corner radius                                                                  | 20px                      |
 | --omni-dock-padding                       | dock padding and gap between tabs                                                   | 5px                       |
+| --omni-dock-badge-background              | background of a dock tab badge                                                      | rgb(229, 57, 53)          |
+| --omni-dock-badge-color                   | text color of a dock tab badge                                                      | white                     |
 | --omni-snap-preview-background            | fill of the snap preview shown while dragging                                       | rgba(255, 255, 255, 0.15) |
 | --omni-snap-preview-border-color          | border of the snap preview                                                          | rgba(255, 255, 255, 0.6)  |
 | --omni-snap-layouts-background            | background of the snap layouts flyout                                               | rgba(24, 23, 28, 0.94)    |

@@ -34,6 +34,10 @@ export interface DesktopLabels {
   dock: string;
   /** Dock tab of a window without a header, and `{name}` in announcements. */
   untitledWindow: string;
+  /** Dock tab with a badge; `{name}`, `{badge}`. */
+  dockTabBadge: string;
+  /** Dock tab of a closed pinned window; `{name}`. */
+  dockTabClosed: string;
   /** Read by screen readers on a focused title bar (or widget grip). */
   keyboardHelp: string;
   /** The snap layouts flyout of the maximize button. */
@@ -69,6 +73,8 @@ export const DEFAULT_DESKTOP_LABELS: DesktopLabels = {
   exitFullScreen: 'Exit full screen',
   dock: 'Windows',
   untitledWindow: 'Window',
+  dockTabBadge: '{name} ({badge})',
+  dockTabClosed: '{name}, closed',
   keyboardHelp:
     'Arrow keys move the window, Shift+arrow keys resize it, Ctrl+arrow keys snap it to the left or right half, maximize, restore or minimize it. Alt+Z opens the snap layouts.',
   snapLayouts: 'Snap layouts',

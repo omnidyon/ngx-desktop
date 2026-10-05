@@ -186,6 +186,13 @@ export class WindowComponent implements DesktopWindow {
    * no dock tab. Snapping, overlap rules, `persistKey` and sessions work as for windows.
    */
   readonly widget = input(false, { transform: booleanAttribute });
+  /** Shown on the window's dock tab, e.g. an unread count. `null`, `''` and `0` show nothing. */
+  readonly badge = input<string | number | null>();
+  /**
+   * Keeps the window's dock tab while it is closed, like a pinned app in a taskbar: clicking the tab opens it
+   * again. The window has to stay in the template (closing only hides it). Not for widgets, which have no tab.
+   */
+  readonly pinned = input(false, { transform: booleanAttribute });
   /**
    * Saves the window's position, size, snapped zone and minimized/maximized/visible state under
    * this key (IndexedDB by default, see `provideDesktopLayoutStorage`) and restores it on load.

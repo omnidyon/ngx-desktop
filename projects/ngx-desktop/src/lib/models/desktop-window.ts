@@ -25,6 +25,10 @@ export interface DesktopWindow {
   /** Whether the window gets a dock tab (widgets do not). */
   readonly dockable: Signal<boolean>;
   readonly widget: Signal<boolean>;
+  /** Shown on the dock tab; `null` / `undefined` / `''` / `0` show nothing. */
+  readonly badge: Signal<string | number | null | undefined>;
+  /** Keeps a dock tab while closed, so the window can be opened again from the dock. */
+  readonly pinned: Signal<boolean>;
   readonly persistKey: Signal<string | undefined>;
   readonly minimizable: Signal<boolean>;
   readonly closable: Signal<boolean>;

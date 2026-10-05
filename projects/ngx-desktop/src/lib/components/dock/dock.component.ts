@@ -15,7 +15,12 @@ import {
   inject,
   input,
   signal,
+  TemplateRef,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { formatLabel } from '../../config/desktop-labels';
+import { DockTabContext } from '../../models/types';
+import { shownBadge } from '../../utils/badge';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DESKTOP_LABELS } from '../../config/desktop-labels';
 import { DesktopWindow } from '../../models/desktop-window';
@@ -32,12 +37,14 @@ import { DesktopService } from '../../services/desktop.service';
  */
 @Component({
   selector: 'omni-dock',
+  imports: [NgTemplateOutlet],
   templateUrl: './dock.component.html',
   styleUrl: './dock.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'toolbar',
     '[attr.aria-label]': 'labels().dock',
+    '[attr.aria-orientation]': 'vertical() ? "vertical" : "horizontal"',
     '[class]': 'hostClasses()',
     '[style.z-index]': 'zIndex',
   },
@@ -47,7 +54,29 @@ export class DockComponent {
   protected readonly zIndex = inject(DESKTOP_CONFIG).zIndex.dock;
   protected readonly labels = inject(DESKTOP_LABELS);
 
-  readonly position = input<'top' | 'bottom'>('bottom');
+  readonly position = input<'top' | 'bottom' | 'left' | 'right'>('bottom');
+  /** Custom inside of each tab, from `<ng-template omniDockTab>`. */
+  readonly tabTemplate = input<TemplateRef<{ $implicit: DockTabContext }> | null>(null);
+
+  protected readonly vertical = computed(() => this.position() === 'left' || this.position() === 'right');
+
+  /** What each tab shows, for the default tab and for a custom template. */
+  protected readonly tabs = computed(() =>
+    this.desktop.dockTabs().map((window) => {
+      const closed = !window.visible();
+      const context: DockTabContext = {
+        id: window.id,
+        header: window.header(),
+        icon: window.icon(),
+        badge: shownBadge(window.badge()),
+        minimized: window.minimized() && !closed,
+        focused: this.desktop.focusedId() === window.id && !window.minimized() && !closed,
+        closed,
+        pinned: window.pinned(),
+      };
+      return { window, context, label: this.tabLabel(context) };
+    })
+  );
 
   constructor() {
     const element: HTMLElement = inject(ElementRef).nativeElement;
@@ -63,7 +92,7 @@ export class DockComponent {
 
   /** The one tab in the tab order: the last focused one, else the focused window's, else the first. */
   protected readonly tabStopId = computed(() => {
-    const ids = this.desktop.dockWindows().map((window) => window.id);
+    const ids = this.desktop.dockTabs().map((window) => window.id);
     const last = this.lastFocusedId();
     if (last && ids.includes(last)) return last;
     const focused = this.desktop.focusedId();
@@ -73,11 +102,20 @@ export class DockComponent {
   protected readonly hostClasses = computed(() => ({
     'omni-dock': true,
     [`omni-dock-${this.position()}`]: true,
-    'omni-dock-empty': this.desktop.dockWindows().length === 0,
+    'omni-dock-empty': this.desktop.dockTabs().length === 0,
   }));
 
   protected activate(window: DesktopWindow): void {
     window.restore();
+  }
+
+  /** "Mail (3)", "Mail, closed": the header with the badge and closed state screen readers should hear. */
+  private tabLabel(tab: DockTabContext): string {
+    const labels = this.labels();
+    let label = tab.header || labels.untitledWindow;
+    if (tab.badge !== null) label = formatLabel(labels.dockTabBadge, { name: label, badge: tab.badge });
+    if (tab.closed) label = formatLabel(labels.dockTabClosed, { name: label });
+    return label;
   }
 
   protected onTabFocus(window: DesktopWindow): void {
@@ -85,7 +123,7 @@ export class DockComponent {
   }
 
   protected onTabKeydown(event: KeyboardEvent, index: number): void {
-    const tabs = this.desktop.dockWindows();
+    const tabs = this.desktop.dockTabs();
     const count = tabs.length;
     let next: number;
     switch (event.key) {

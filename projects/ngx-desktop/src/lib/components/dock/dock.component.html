@@ -1,21 +1,30 @@
-@for (window of desktop.dockWindows(); track window.id) {
+@for (tab of tabs(); track tab.window.id) {
   <button
     type="button"
     class="omni-dock-tab"
-    [attr.data-window-id]="window.id"
-    [attr.tabindex]="window.id === tabStopId() ? 0 : -1"
-    [class.omni-dock-tab-minimized]="window.minimized()"
-    [class.omni-dock-tab-focused]="desktop.focusedId() === window.id && !window.minimized()"
-    [attr.aria-label]="window.header() || labels().untitledWindow"
-    [attr.title]="window.header() || null"
-    (click)="activate(window)"
-    (focus)="onTabFocus(window)"
+    [attr.data-window-id]="tab.window.id"
+    [attr.tabindex]="tab.window.id === tabStopId() ? 0 : -1"
+    [class.omni-dock-tab-minimized]="tab.context.minimized"
+    [class.omni-dock-tab-focused]="tab.context.focused"
+    [class.omni-dock-tab-closed]="tab.context.closed"
+    [class.omni-dock-tab-custom]="!!tabTemplate()"
+    [attr.aria-label]="tab.label"
+    [attr.title]="tab.context.header || null"
+    (click)="activate(tab.window)"
+    (focus)="onTabFocus(tab.window)"
     (keydown)="onTabKeydown($event, $index)"
   >
-    @if (window.icon(); as src) {
-      <img class="omni-dock-icon" [src]="src" alt="" />
+    @if (tabTemplate(); as template) {
+      <ng-container [ngTemplateOutlet]="template" [ngTemplateOutletContext]="{ $implicit: tab.context }" />
     } @else {
-      <span class="omni-dock-label">{{ window.header() }}</span>
+      @if (tab.context.icon; as src) {
+        <img class="omni-dock-icon" [src]="src" alt="" />
+      } @else {
+        <span class="omni-dock-label">{{ tab.context.header }}</span>
+      }
+      @if (tab.context.badge !== null) {
+        <span class="omni-dock-badge" aria-hidden="true">{{ tab.context.badge }}</span>
+      }
     }
   </button>
 }

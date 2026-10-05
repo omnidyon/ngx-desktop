@@ -92,6 +92,8 @@ export class DesktopService {
   readonly openWindows = computed(() => this._windows().filter((w) => w.visible()));
   /** Open windows that get a dock tab (widgets do not). */
   readonly dockWindows = computed(() => this.openWindows().filter((w) => w.dockable()));
+  /** The dock's tabs: open windows (not widgets) and closed `pinned` ones, in the order they were added. */
+  readonly dockTabs = computed(() => this._windows().filter((w) => w.dockable() && (w.visible() || w.pinned())));
   readonly focusedId = computed(() => {
     const stack = this._stack();
     return stack.length ? stack[stack.length - 1] : null;

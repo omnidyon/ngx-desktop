@@ -30,18 +30,39 @@
   border-radius: 0 0 var(--omni-dock-border-radius) var(--omni-dock-border-radius);
 }
 
+// Vertical docks: centred on the left or right edge, tabs stacked.
+:host(.omni-dock-left),
+:host(.omni-dock-right) {
+  top: 50%;
+  left: auto;
+  flex-direction: column;
+  padding: calc(2 * var(--omni-dock-padding)) var(--omni-dock-padding);
+  translate: 0 -50%;
+}
+
+:host(.omni-dock-left) {
+  left: 0;
+  border-radius: 0 var(--omni-dock-border-radius) var(--omni-dock-border-radius) 0;
+}
+
+:host(.omni-dock-right) {
+  right: 0;
+  border-radius: var(--omni-dock-border-radius) 0 0 var(--omni-dock-border-radius);
+}
+
 :host(.omni-dock-empty) {
   display: none;
 }
 
 .omni-dock-tab {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   width: var(--omni-dock-tab-size);
   height: var(--omni-dock-tab-size);
   padding: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid transparent;
   border-radius: 5px;
   background-color: var(--omni-dock-tab-background);
@@ -67,12 +88,41 @@
   border-color: var(--omni-dock-text-color);
 }
 
+// A pinned window that is closed: still in the dock, dimmed until it is opened again.
+.omni-dock-tab-closed {
+  opacity: 0.55;
+}
+
+// A custom template draws the whole inside of the tab.
+.omni-dock-tab-custom {
+  overflow: visible;
+}
+
+.omni-dock-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  box-sizing: border-box;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--omni-dock-badge-background);
+  color: var(--omni-dock-badge-color);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+}
+
 .omni-dock-icon {
   max-width: 24px;
   max-height: 24px;
 }
 
 .omni-dock-label {
+  max-width: 100%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
