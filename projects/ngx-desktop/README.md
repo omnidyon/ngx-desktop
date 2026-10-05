@@ -104,6 +104,14 @@ Where a window starts, first match wins:
 <omni-window header="Logs" x="60%" y="40" width="480" height="30%" />
 ```
 
+Limit the size with `minWidth` / `minHeight` (px, default 130 × 65) and `maxWidth` / `maxHeight` (px or a percentage
+of the desktop, no limit by default). The limits apply to resizing, snapping into zones (a window that cannot fill a
+zone keeps to its outer edge), saved layouts and `[(rect)]`; maximize still fills the desktop.
+
+```html
+<omni-window header="Preview" [minWidth]="240" maxWidth="50%" [maxHeight]="400" />
+```
+
 Bind `[(rect)]` to read the window's position and size live (it updates while dragging) or to move and resize it from
 code. A rect set from code is kept inside the desktop when `keepInBounds` is on.
 

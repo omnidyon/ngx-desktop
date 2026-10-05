@@ -129,10 +129,12 @@
       theme="neo-tokyo"
       [width]="360"
       [height]="240"
+      [maxWidth]="480"
+      [maxHeight]="320"
       persistKey="demo-nest"
     >
       <p>This window always uses the <code>neo-tokyo</code> theme, whatever the desktop theme is.</p>
-      <p>It starts at <code>x="62%" y="40"</code>, 360 × 240.</p>
+      <p>It starts at <code>x="62%" y="40"</code>, 360 × 240, and can grow to at most 480 × 320.</p>
     </omni-window>
 
     <omni-window

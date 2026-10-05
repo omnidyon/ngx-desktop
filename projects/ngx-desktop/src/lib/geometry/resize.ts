@@ -12,7 +12,7 @@ import { Rect, ResizeDirection, Size } from '../models/types';
  * @internal
  * @description
  * Resizes a rectangle from one edge or corner by the pointer delta.
- * The opposite edge stays fixed, the minimum size is respected and, when bounds
+ * The opposite edge stays fixed, the minimum and maximum sizes are respected and, when bounds
  * are given, the moving edges never leave them.
  */
 export function resizeRect(
@@ -21,7 +21,8 @@ export function resizeRect(
   dx: number,
   dy: number,
   minSize: Size,
-  bounds?: Rect
+  bounds?: Rect,
+  maxSize: Size = { width: Number.POSITIVE_INFINITY, height: Number.POSITIVE_INFINITY }
 ): Rect {
   let left = start.x;
   let top = start.y;
@@ -29,19 +30,19 @@ export function resizeRect(
   let bottom = start.y + start.height;
 
   if (direction.includes('w')) {
-    left = Math.min(left + dx, right - minSize.width);
+    left = Math.max(Math.min(left + dx, right - minSize.width), right - maxSize.width);
     if (bounds) left = Math.max(left, bounds.x);
   }
   if (direction.includes('e')) {
-    right = Math.max(right + dx, left + minSize.width);
+    right = Math.min(Math.max(right + dx, left + minSize.width), left + maxSize.width);
     if (bounds) right = Math.min(right, bounds.x + bounds.width);
   }
   if (direction.includes('n')) {
-    top = Math.min(top + dy, bottom - minSize.height);
+    top = Math.max(Math.min(top + dy, bottom - minSize.height), bottom - maxSize.height);
     if (bounds) top = Math.max(top, bounds.y);
   }
   if (direction.includes('s')) {
-    bottom = Math.max(bottom + dy, top + minSize.height);
+    bottom = Math.min(Math.max(bottom + dy, top + minSize.height), top + maxSize.height);
     if (bounds) bottom = Math.min(bottom, bounds.y + bounds.height);
   }
 

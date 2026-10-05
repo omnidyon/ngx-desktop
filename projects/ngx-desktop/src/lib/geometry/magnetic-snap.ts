@@ -61,6 +61,11 @@ function nearestOffset(value: number, lines: readonly number[], threshold: numbe
   return best;
 }
 
+/** Whether a length stays within the minimum and maximum. */
+function fits(length: number, min: number, max: number): boolean {
+  return length >= min && length <= max;
+}
+
 /** The smaller of two optional offsets, or 0 when neither applies. */
 function closest(a: number | null, b: number | null): number {
   if (a === null) return b ?? 0;
@@ -102,7 +107,7 @@ export function magneticMove(
  * @description
  * Magnetic snapping while resizing: only the edges being dragged snap to nearby edges of other
  * windows (or of the bounds), with the same `gap` rules as {@link magneticMove}.
- * A snap that would make the rectangle smaller than `minSize` is skipped.
+ * A snap that would make the rectangle smaller than `minSize` or larger than `maxSize` is skipped.
  */
 export function magneticResize(
   rect: Rect,
@@ -111,7 +116,8 @@ export function magneticResize(
   bounds: Rect | null,
   threshold: number,
   minSize: Size,
-  gap = 0
+  gap = 0,
+  maxSize: Size = { width: Number.POSITIVE_INFINITY, height: Number.POSITIVE_INFINITY }
 ): Rect {
   let left = rect.x;
   let top = rect.y;
@@ -122,19 +128,19 @@ export function magneticResize(
 
   if (direction.includes('w')) {
     const offset = nearestOffset(left, x.start, threshold);
-    if (offset !== null && right - (left + offset) >= minSize.width) left += offset;
+    if (offset !== null && fits(right - (left + offset), minSize.width, maxSize.width)) left += offset;
   }
   if (direction.includes('e')) {
     const offset = nearestOffset(right, x.end, threshold);
-    if (offset !== null && right + offset - left >= minSize.width) right += offset;
+    if (offset !== null && fits(right + offset - left, minSize.width, maxSize.width)) right += offset;
   }
   if (direction.includes('n')) {
     const offset = nearestOffset(top, y.start, threshold);
-    if (offset !== null && bottom - (top + offset) >= minSize.height) top += offset;
+    if (offset !== null && fits(bottom - (top + offset), minSize.height, maxSize.height)) top += offset;
   }
   if (direction.includes('s')) {
     const offset = nearestOffset(bottom, y.end, threshold);
-    if (offset !== null && bottom + offset - top >= minSize.height) bottom += offset;
+    if (offset !== null && fits(bottom + offset - top, minSize.height, maxSize.height)) bottom += offset;
   }
 
   return { x: left, y: top, width: right - left, height: bottom - top };

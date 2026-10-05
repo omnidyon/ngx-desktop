@@ -131,6 +131,13 @@ describe('magnetic snapping', () => {
       expect(magneticResize(rect, 'se', [], bounds, t, min)).toEqual({ x: 700, y: 600, width: 300, height: 200 });
     });
 
+    it('skips a snap that would break the maximum size', () => {
+      // snapping the east edge to 400 would make it 300 wide; the maximum is 295
+      const rect = { x: 100, y: 320, width: 290, height: 100 };
+      const max = { width: 295, height: 1000 };
+      expect(magneticResize(rect, 'e', [other], bounds, t, min, 0, max)).toEqual(rect);
+    });
+
     it('skips a snap that would break the minimum size', () => {
       // snapping the west edge to 600 would leave 125px < 130px
       const rect = { x: 590, y: 320, width: 135, height: 100 };

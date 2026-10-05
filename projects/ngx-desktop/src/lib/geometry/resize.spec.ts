@@ -41,6 +41,12 @@ describe('resizeRect', () => {
     expect(resizeRect(start, 'se', 5000, 5000, min, bounds)).toEqual({ x: 100, y: 100, width: 900, height: 700 });
   });
 
+  it('never grows beyond the maximum size, keeping the opposite edge fixed', () => {
+    const max = { width: 350, height: 230 };
+    expect(resizeRect(start, 'se', 500, 500, min, undefined, max)).toEqual({ x: 100, y: 100, width: 350, height: 230 });
+    expect(resizeRect(start, 'nw', -500, -500, min, undefined, max)).toEqual({ x: 50, y: 70, width: 350, height: 230 });
+  });
+
   it('ignores the delta on the axis the direction does not touch', () => {
     expect(resizeRect(start, 'e', 0, 500, min, bounds)).toEqual(start);
   });
