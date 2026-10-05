@@ -73,6 +73,21 @@ export type TileMode = 'auto' | 'columns' | 'rows';
 /**
  * @publicApi
  * @description
+ * What `tile()` and `cascade()` arrange: everything open (`'all'`, the default), only windows, or only widgets.
+ */
+export type ArrangeTarget = 'all' | 'windows' | 'widgets';
+
+/**
+ * @publicApi
+ */
+export interface ArrangeOptions {
+  /** What to arrange; see {@link ArrangeTarget}. Minimized windows are never moved. */
+  include?: ArrangeTarget;
+}
+
+/**
+ * @publicApi
+ * @description
  * A window of a desktop, as listed by `DesktopComponent.windows()`.
  */
 export interface DesktopWindowInfo {

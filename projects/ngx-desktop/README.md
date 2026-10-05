@@ -256,22 +256,30 @@ readonly desktop = viewChild.required(DesktopComponent);
 readonly desktop = injectDesktop(); // injectDesktop({ optional: true }) returns null outside one
 ```
 
-| Member                | What it does                                                                                                          |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `windows()`           | signal: every window and widget (`id`, `header`, `visible`, `minimized`, `maximized`, `rect`, `widget`, `persistKey`) |
-| `focusedId()`         | signal: id of the window in front                                                                                     |
-| `focus(id)`           | shows a window (restoring it when minimized or closed) and brings it to the front                                     |
-| `minimizeAll()`       | minimizes every `minimizable` window; widgets stay                                                                    |
-| `restoreAll()`        | restores every minimized window                                                                                       |
-| `toggleShowDesktop()` | minimizes all windows; the next call restores the ones it minimized                                                   |
-| `showingDesktop()`    | signal: windows hidden by `toggleShowDesktop()` are still minimized                                                   |
-| `closeAll()`          | closes every `closable` window and widget                                                                             |
-| `tile(mode?)`         | arranges the open windows: `'auto'` (grid, default), `'columns'`, `'rows'`                                            |
-| `cascade()`           | stacks the open windows diagonally, keeping their sizes; returns `false` when overlap is off                          |
+| Member                      | What it does                                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `windows()`                 | signal: every window and widget (`id`, `header`, `visible`, `minimized`, `maximized`, `rect`, `widget`, `persistKey`) |
+| `focusedId()`               | signal: id of the window in front                                                                                     |
+| `focus(id)`                 | shows a window (restoring it when minimized or closed) and brings it to the front                                     |
+| `minimizeAll()`             | minimizes every `minimizable` window; widgets stay                                                                    |
+| `restoreAll()`              | restores every minimized window                                                                                       |
+| `toggleShowDesktop()`       | minimizes all windows; the next call restores the ones it minimized                                                   |
+| `showingDesktop()`          | signal: windows hidden by `toggleShowDesktop()` are still minimized                                                   |
+| `closeAll()`                | closes every `closable` window and widget                                                                             |
+| `tile(mode?, { include? })` | arranges the open windows and widgets: `'auto'` (grid, default), `'columns'`, `'rows'`; returns how many it arranged  |
+| `cascade({ include? })`     | stacks the open windows and widgets diagonally, keeping their sizes; returns how many it arranged                     |
 
-`tile` and `cascade` move open windows only: not widgets, not minimized ones. They keep `snapPadding` between windows,
-respect each window's size limits and un-maximize windows. With `allowOverlap` off, tiles make room for widgets, and
-`cascade` does nothing (cascaded windows overlap by design).
+`include` chooses what is arranged: `'all'` (default), `'windows'` or `'widgets'`, so a widget dashboard can be tidied on
+its own:
+
+```ts
+desk.tile('auto', { include: 'widgets' });
+desk.cascade({ include: 'windows' });
+```
+
+Minimized windows are never moved. `tile` and `cascade` keep `snapPadding` between items, respect each one's size
+limits and un-maximize windows. With `allowOverlap` off, tiles make room for the open items they do not arrange, and
+`cascade` does nothing and returns `0` (cascaded items overlap by design).
 
 </details>
 

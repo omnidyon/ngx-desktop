@@ -11,7 +11,7 @@ import { DESKTOP_CONFIG } from '../config/desktop-config';
 import { cascadeRects, tileRects } from '../geometry/arrange';
 import { fitWithoutOverlap } from '../geometry/fit';
 import { DesktopWindow } from '../models/desktop-window';
-import { Rect, Size, TileMode } from '../models/types';
+import { ArrangeTarget, Rect, Size, TileMode } from '../models/types';
 
 /**
  * @internal
@@ -238,53 +238,57 @@ export class DesktopService {
   }
 
   /**
-   * Arranges the open windows (not widgets, not minimized) over the desktop, in dock order, keeping
-   * `snapPadding` between them. When overlap is not allowed, tiles also make room for widgets.
+   * Arranges the open windows and/or widgets (never minimized windows) over the desktop in the order they
+   * were added, keeping `snapPadding` between them. When overlap is not allowed, the tiles also make room
+   * for open items that are not being arranged. Returns how many were arranged.
    */
-  tile(mode: TileMode = 'auto'): void {
-    const windows = this.arrangeable();
-    if (!windows.length || this.isHidden()) return;
+  tile(mode: TileMode = 'auto', include: ArrangeTarget = 'all'): number {
+    const items = this.arrangeable(include);
+    if (!items.length || this.isHidden()) return 0;
     const bounds = this.bounds();
     const gap = this.settings.snapPadding();
-    const rects = tileRects(windows.length, bounds, mode, gap);
-    const widgets = this.settings.allowOverlap()
+    const rects = tileRects(items.length, bounds, mode, gap);
+    const obstacles = this.settings.allowOverlap()
       ? []
       : this.openWindows()
-          .filter((w) => w.widget())
+          .filter((w) => !w.minimized() && !items.includes(w))
           .map((w) => w.rect())
           .filter((rect): rect is Rect => !!rect);
     const placed: Rect[] = [];
-    windows.forEach((window, i) => {
-      const minSize = { width: window.minWidth(), height: window.minHeight() };
-      const rect = widgets.length
-        ? (fitWithoutOverlap(rects[i], [...widgets, ...placed], bounds, minSize, gap) ?? rects[i])
+    items.forEach((item, i) => {
+      const minSize = { width: item.minWidth(), height: item.minHeight() };
+      const rect = obstacles.length
+        ? (fitWithoutOverlap(rects[i], [...obstacles, ...placed], bounds, minSize, gap) ?? rects[i])
         : rects[i];
-      window.place(rect);
-      placed.push(window.rect() ?? rect);
+      item.place(rect);
+      placed.push(item.rect() ?? rect);
     });
+    return items.length;
   }
 
   /**
-   * Stacks the open windows (not widgets, not minimized) diagonally from the top-left, in stacking
-   * order, each keeping its size. Cascaded windows overlap, so this does nothing (and returns `false`)
-   * when the desktop does not allow overlap.
+   * Stacks the open windows and/or widgets (never minimized windows) diagonally from the top-left, in
+   * stacking order; each keeps its size unless it would stick out. Cascaded items overlap, so nothing
+   * happens when the desktop does not allow overlap. Returns how many were arranged.
    */
-  cascade(): boolean {
-    if (!this.settings.allowOverlap()) return false;
-    const windows = this.byStack(this.arrangeable());
-    if (!windows.length || this.isHidden()) return true;
-    const sizes = windows.map((w) => {
+  cascade(include: ArrangeTarget = 'all'): number {
+    if (!this.settings.allowOverlap()) return 0;
+    const items = this.byStack(this.arrangeable(include));
+    if (!items.length || this.isHidden()) return 0;
+    const sizes = items.map((w) => {
       const rect = w.rect();
       return { width: rect?.width ?? 0, height: rect?.height ?? 0 };
     });
     const rects = cascadeRects(sizes, this.bounds(), CASCADE_STEP, this.settings.snapPadding());
-    windows.forEach((window, i) => window.place(rects[i]));
-    return true;
+    items.forEach((item, i) => item.place(rects[i]));
+    return items.length;
   }
 
-  /** Windows tile and cascade move: shown, not minimized, not widgets. */
-  private arrangeable(): DesktopWindow[] {
-    return this.dockWindows().filter((w) => !w.minimized());
+  /** What tile and cascade move: open, not minimized, and windows and/or widgets as asked. */
+  private arrangeable(include: ArrangeTarget): DesktopWindow[] {
+    return this.openWindows().filter(
+      (w) => !w.minimized() && (include === 'all' || (include === 'widgets') === w.widget())
+    );
   }
 
   /** The windows sorted bottom to top. */

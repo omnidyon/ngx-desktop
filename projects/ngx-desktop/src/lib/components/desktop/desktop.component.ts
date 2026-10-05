@@ -22,7 +22,7 @@ import {
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DESKTOP_DEV_MODE } from '../../config/dev-mode';
 import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
-import { DesktopTheme, DesktopWindowInfo, DockPosition, TileMode } from '../../models/types';
+import { ArrangeOptions, DesktopTheme, DesktopWindowInfo, DockPosition, TileMode } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
 
 /**
@@ -133,19 +133,21 @@ export class DesktopComponent {
   }
 
   /**
-   * Arranges the open windows (not widgets or minimized ones) over the desktop, in dock order,
-   * `snapPadding` apart: `'auto'` a grid, `'columns'` side by side, `'rows'` stacked.
+   * Arranges the open windows and widgets over the desktop, `snapPadding` apart: `'auto'` a grid,
+   * `'columns'` side by side, `'rows'` stacked. `include` limits it to `'windows'` or `'widgets'`;
+   * minimized windows are never moved. Returns how many were arranged.
    */
-  tile(mode: TileMode = 'auto'): void {
-    this.service.tile(mode);
+  tile(mode: TileMode = 'auto', options: ArrangeOptions = {}): number {
+    return this.service.tile(mode, options.include);
   }
 
   /**
-   * Stacks the open windows diagonally from the top-left, each keeping its size. Does nothing and
-   * returns `false` when the desktop does not allow overlap.
+   * Stacks the open windows and widgets diagonally from the top-left. `include` limits it to
+   * `'windows'` or `'widgets'`. Cascaded items overlap, so nothing happens (it returns 0) when the
+   * desktop does not allow overlap. Returns how many were arranged.
    */
-  cascade(): boolean {
-    return this.service.cascade();
+  cascade(options: ArrangeOptions = {}): number {
+    return this.service.cascade(options.include);
   }
 
   protected readonly dockPosition = computed(() => {

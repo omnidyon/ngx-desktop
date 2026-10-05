@@ -145,18 +145,38 @@ describe('Desktop API', () => {
   });
 
   describe('tile', () => {
-    it('arranges the open windows in a grid, leaving widgets and minimized windows', async () => {
+    it('arranges the open windows and widgets in a grid, leaving minimized windows', async () => {
       await create();
-      desk().tile();
+      expect(desk().tile()).toBe(4);
       expect(win('A').rect()).toEqual({ x: 0, y: 0, width: 400, height: 300 });
       expect(win('B').rect()).toEqual({ x: 400, y: 0, width: 400, height: 300 });
-      expect(win('C').rect()).toEqual({ x: 0, y: 300, width: 800, height: 300 });
-      expect(win('W').rect()).toEqual({ x: 600, y: 400, width: 150, height: 150 });
+      expect(win('C').rect()).toEqual({ x: 0, y: 300, width: 400, height: 300 });
+      expect(win('W').rect()).toEqual({ x: 400, y: 300, width: 400, height: 300 });
 
       win('B').minimize();
-      desk().tile('columns');
-      expect(win('A').rect()).toEqual({ x: 0, y: 0, width: 400, height: 600 });
-      expect(win('C').rect()).toEqual({ x: 400, y: 0, width: 400, height: 600 });
+      expect(desk().tile('columns')).toBe(3);
+      expect(win('A').rect()).toEqual({ x: 0, y: 0, width: 266, height: 600 });
+      expect(win('C').rect()).toEqual({ x: 266, y: 0, width: 266, height: 600 });
+      expect(win('W').rect()).toEqual({ x: 532, y: 0, width: 266, height: 600 });
+    });
+
+    it('arranges a desktop that has only widgets open', async () => {
+      await create();
+      for (const header of ['A', 'B', 'C']) win(header).close();
+      expect(desk().tile()).toBe(1);
+      expect(win('W').rect()).toEqual({ x: 0, y: 0, width: 800, height: 600 });
+    });
+
+    it('arranges only widgets or only windows when asked', async () => {
+      await create();
+      const windowsBefore = ['A', 'B', 'C'].map((h) => win(h).rect());
+      expect(desk().tile('auto', { include: 'widgets' })).toBe(1);
+      expect(win('W').rect()).toEqual({ x: 0, y: 0, width: 800, height: 600 });
+      expect(['A', 'B', 'C'].map((h) => win(h).rect())).toEqual(windowsBefore);
+
+      expect(desk().tile('auto', { include: 'windows' })).toBe(3);
+      expect(win('C').rect()).toEqual({ x: 0, y: 300, width: 800, height: 300 });
+      expect(win('W').rect()).toEqual({ x: 0, y: 0, width: 800, height: 600 });
     });
 
     it('keeps the snap padding and un-maximizes windows', async () => {
@@ -164,13 +184,13 @@ describe('Desktop API', () => {
       win('A').toggleMaximize();
       desk().tile('rows');
       expect(win('A').maximized()).toBe(false);
-      expect(win('A').rect()).toEqual({ x: 10, y: 10, width: 780, height: 186 });
-      expect(win('C').rect()).toEqual({ x: 10, y: 402, width: 780, height: 186 });
+      expect(win('A').rect()).toEqual({ x: 10, y: 10, width: 780, height: 137 });
+      expect(win('C').rect()).toEqual({ x: 10, y: 304, width: 780, height: 137 });
     });
 
-    it('makes room for widgets when overlap is not allowed', async () => {
+    it('makes room for the items it does not arrange when overlap is not allowed', async () => {
       await create((h) => h.allow.set(false));
-      desk().tile();
+      desk().tile('auto', { include: 'windows' });
       const widget = win('W').rect()!;
       for (const header of ['A', 'B', 'C']) {
         const rect = win(header).rect()!;
@@ -183,30 +203,46 @@ describe('Desktop API', () => {
       }
     });
 
+    it('returns 0 when there is nothing to arrange', async () => {
+      await create();
+      desk().closeAll();
+      win('C').close();
+      expect(desk().tile()).toBe(0);
+    });
+
     it('works from a template reference and from injectDesktop() inside a window', async () => {
       await create();
       (fixture.nativeElement.querySelector('.tile-from-ref') as HTMLButtonElement).click();
-      expect(win('B').rect()).toEqual({ x: 0, y: 200, width: 800, height: 200 });
+      expect(win('B').rect()).toEqual({ x: 0, y: 150, width: 800, height: 150 });
       (fixture.nativeElement.querySelector('.tile-from-inside') as HTMLButtonElement).click();
-      expect(win('B').rect()).toEqual({ x: 266, y: 0, width: 266, height: 600 });
+      expect(win('B').rect()).toEqual({ x: 200, y: 0, width: 200, height: 600 });
     });
   });
 
   describe('cascade', () => {
-    it('stacks the open windows diagonally in stacking order, keeping their sizes', async () => {
+    it('stacks the open windows and widgets diagonally in stacking order, keeping their sizes', async () => {
       await create();
-      win('A').focus(); // order bottom to top: B, C, A
-      expect(desk().cascade()).toBe(true);
+      win('A').focus(); // order bottom to top: B, C, W, A
+      expect(desk().cascade()).toBe(4);
       expect(win('B').rect()).toEqual({ x: 0, y: 0, width: 200, height: 100 });
       expect(win('C').rect()).toEqual({ x: 32, y: 32, width: 200, height: 100 });
-      expect(win('A').rect()).toEqual({ x: 64, y: 64, width: 200, height: 100 });
+      expect(win('W').rect()).toEqual({ x: 64, y: 64, width: 150, height: 150 });
+      expect(win('A').rect()).toEqual({ x: 96, y: 96, width: 200, height: 100 });
       expect(desk().focusedId()).toBe(win('A').id);
+    });
+
+    it('cascades only windows or only widgets when asked', async () => {
+      await create();
+      expect(desk().cascade({ include: 'windows' })).toBe(3);
+      expect(win('W').rect()).toEqual({ x: 600, y: 400, width: 150, height: 150 });
+      expect(desk().cascade({ include: 'widgets' })).toBe(1);
+      expect(win('W').rect()).toEqual({ x: 0, y: 0, width: 150, height: 150 });
     });
 
     it('does nothing when overlap is not allowed', async () => {
       await create((h) => h.allow.set(false));
       const before = win('B').rect();
-      expect(desk().cascade()).toBe(false);
+      expect(desk().cascade()).toBe(0);
       expect(win('B').rect()).toEqual(before);
     });
   });

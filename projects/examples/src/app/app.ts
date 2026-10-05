@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
+  ArrangeTarget,
   DESKTOP_LAYOUT_STORAGE,
   DesktopComponent,
   DesktopTheme,
@@ -59,6 +60,8 @@ export class App {
     'twitch',
   ];
   protected readonly docks: DockPosition[] = ['bottom', 'top', 'none'];
+  protected readonly arrangeTargets: ArrangeTarget[] = ['all', 'windows', 'widgets'];
+  protected readonly arrangeTarget = signal<ArrangeTarget>('all');
 
   protected readonly theme = signal<DesktopTheme>('default');
   protected readonly dock = signal<DockPosition>('bottom');
@@ -122,6 +125,22 @@ export class App {
     await this.added.whenSaved();
     await this.layoutStorage.clear();
     location.reload();
+  }
+
+  protected setArrangeTarget(event: Event): void {
+    this.arrangeTarget.set((event.target as HTMLSelectElement).value as ArrangeTarget);
+  }
+
+  protected tile(desktop: DesktopComponent): void {
+    const include = this.arrangeTarget();
+    const count = desktop.tile('auto', { include });
+    this.record(count ? `Tile (${include}): ${count} arranged` : `Tile (${include}): nothing open to arrange`);
+  }
+
+  protected cascade(desktop: DesktopComponent): void {
+    const include = this.arrangeTarget();
+    const count = desktop.cascade({ include });
+    this.record(count ? `Cascade (${include}): ${count} arranged` : `Cascade (${include}): nothing open to arrange`);
   }
 
   protected record(entry: string): void {
