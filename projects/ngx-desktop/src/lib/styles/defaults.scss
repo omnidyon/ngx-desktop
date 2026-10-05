@@ -119,6 +119,30 @@
     inherits: true;
     initial-value: 300ms;
   }
+
+  @property --omni-window-scrollbar-size {
+    syntax: '<length>';
+    inherits: true;
+    initial-value: 8px;
+  }
+
+  @property --omni-window-scrollbar-thumb {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(200, 193, 193, 0.35);
+  }
+
+  @property --omni-window-scrollbar-thumb-hover {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(200, 193, 193, 0.6);
+  }
+
+  @property --omni-window-scrollbar-track {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+  }
 }
 
 @mixin dialog-properties {

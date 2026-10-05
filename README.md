@@ -178,39 +178,43 @@ export class App {
 When installed, windows, dialogs and the dock come in a default style. You can restyle them by defining any of the
 values below on the component itself or on any ancestor element (for example `omni-desktop`, `body` or `:root`).
 
-| Variable                          | Meaning                                                  | Default                   |
-| --------------------------------- | -------------------------------------------------------- | ------------------------- |
-| --omni-window-width               | initial window width (unless the `width` input is set)   | 50%                       |
-| --omni-window-height              | initial window height (unless the `height` input is set) | 50%                       |
-| --omni-window-background          | window background                                        | rgb(49, 31, 49)           |
-| --omni-window-border-color        | window border color                                      | grey                      |
-| --omni-window-border-width        | window border width                                      | 1px                       |
-| --omni-window-border-radius       | window corner radius                                     | 20px                      |
-| --omni-window-header-height       | header height                                            | 30px                      |
-| --omni-window-header-background   | header background                                        | #40303f                   |
-| --omni-window-header-text-color   | header text and button color                             | rgb(200, 193, 193)        |
-| --omni-window-header-font-size    | header font size                                         | 18px                      |
-| --omni-window-header-font-weight  | header font weight                                       | 200                       |
-| --omni-window-content-color       | content and footer text color                            | rgb(200, 193, 193)        |
-| --omni-window-content-padding     | content padding                                          | 5px                       |
-| --omni-window-icon-size           | max size of the header icon                              | 24px                      |
-| --omni-window-button-size         | size of the header buttons                               | 20px                      |
-| --omni-window-collapsed-width     | width of a minimized window outside a desktop            | 105px                     |
-| --omni-window-transition-duration | open/close/minimize animation duration                   | 300ms                     |
-| --omni-dialog-background          | dialog background                                        | rgb(86, 60, 86)           |
-| --omni-dialog-overlay-color       | modal overlay color                                      | rgba(0, 0, 0, 0.4)        |
-| --omni-dialog-width               | dialog width                                             | 40%                       |
-| --omni-dialog-max-height          | dialog maximum height                                    | 80%                       |
-| --omni-dock-background            | dock background                                          | #18171780                 |
-| --omni-dock-tab-background        | dock tab background                                      | #11010180                 |
-| --omni-dock-tab-hover-background  | dock tab background on hover                             | black                     |
-| --omni-dock-active-tab-background | background of tabs whose window is minimized             | #43393980                 |
-| --omni-dock-text-color            | dock tab text color, focused tab border                  | grey                      |
-| --omni-dock-tab-size              | dock tab width and height                                | 40px                      |
-| --omni-dock-border-radius         | dock corner radius                                       | 20px                      |
-| --omni-dock-padding               | dock padding and gap between tabs                        | 5px                       |
-| --omni-snap-preview-background    | fill of the snap preview shown while dragging            | rgba(255, 255, 255, 0.15) |
-| --omni-snap-preview-border-color  | border of the snap preview                               | rgba(255, 255, 255, 0.6)  |
+| Variable                            | Meaning                                                  | Default                   |
+| ----------------------------------- | -------------------------------------------------------- | ------------------------- |
+| --omni-window-width                 | initial window width (unless the `width` input is set)   | 50%                       |
+| --omni-window-height                | initial window height (unless the `height` input is set) | 50%                       |
+| --omni-window-background            | window background                                        | rgb(49, 31, 49)           |
+| --omni-window-border-color          | window border color                                      | grey                      |
+| --omni-window-border-width          | window border width                                      | 1px                       |
+| --omni-window-border-radius         | window corner radius                                     | 20px                      |
+| --omni-window-header-height         | header height                                            | 30px                      |
+| --omni-window-header-background     | header background                                        | #40303f                   |
+| --omni-window-header-text-color     | header text and button color                             | rgb(200, 193, 193)        |
+| --omni-window-header-font-size      | header font size                                         | 18px                      |
+| --omni-window-header-font-weight    | header font weight                                       | 200                       |
+| --omni-window-content-color         | content and footer text color                            | rgb(200, 193, 193)        |
+| --omni-window-content-padding       | content padding                                          | 5px                       |
+| --omni-window-icon-size             | max size of the header icon                              | 24px                      |
+| --omni-window-button-size           | size of the header buttons                               | 20px                      |
+| --omni-window-collapsed-width       | width of a minimized window outside a desktop            | 105px                     |
+| --omni-window-transition-duration   | open/close/minimize animation duration                   | 300ms                     |
+| --omni-window-scrollbar-size        | width of the scrollbar inside windows and dialogs        | 8px                       |
+| --omni-window-scrollbar-thumb       | scrollbar thumb colour                                   | rgba(200, 193, 193, 0.35) |
+| --omni-window-scrollbar-thumb-hover | scrollbar thumb colour on hover                          | rgba(200, 193, 193, 0.6)  |
+| --omni-window-scrollbar-track       | scrollbar track colour                                   | transparent               |
+| --omni-dialog-background            | dialog background                                        | rgb(86, 60, 86)           |
+| --omni-dialog-overlay-color         | modal overlay color                                      | rgba(0, 0, 0, 0.4)        |
+| --omni-dialog-width                 | dialog width                                             | 40%                       |
+| --omni-dialog-max-height            | dialog maximum height                                    | 80%                       |
+| --omni-dock-background              | dock background                                          | #18171780                 |
+| --omni-dock-tab-background          | dock tab background                                      | #11010180                 |
+| --omni-dock-tab-hover-background    | dock tab background on hover                             | black                     |
+| --omni-dock-active-tab-background   | background of tabs whose window is minimized             | #43393980                 |
+| --omni-dock-text-color              | dock tab text color, focused tab border                  | grey                      |
+| --omni-dock-tab-size                | dock tab width and height                                | 40px                      |
+| --omni-dock-border-radius           | dock corner radius                                       | 20px                      |
+| --omni-dock-padding                 | dock padding and gap between tabs                        | 5px                       |
+| --omni-snap-preview-background      | fill of the snap preview shown while dragging            | rgba(255, 255, 255, 0.15) |
+| --omni-snap-preview-border-color    | border of the snap preview                               | rgba(255, 255, 255, 0.6)  |
 
 ```scss
 omni-desktop {

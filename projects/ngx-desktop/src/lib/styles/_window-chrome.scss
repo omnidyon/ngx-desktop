@@ -77,6 +77,38 @@
     overflow: auto;
     padding: var(--omni-window-content-padding);
     color: var(--omni-window-content-color);
+
+    // Themed scrollbar inside the window (Chromium, Safari, Edge).
+    &::-webkit-scrollbar {
+      width: var(--omni-window-scrollbar-size);
+      height: var(--omni-window-scrollbar-size);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--omni-window-scrollbar-track);
+      // Keeps the scrollbar clear of the window's rounded bottom corner.
+      margin-block-end: calc(var(--omni-window-border-radius) / 2);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--omni-window-scrollbar-thumb);
+      border-radius: calc(var(--omni-window-scrollbar-size) / 2);
+
+      &:hover {
+        background: var(--omni-window-scrollbar-thumb-hover);
+      }
+    }
+
+    &::-webkit-scrollbar-button,
+    &::-webkit-scrollbar-corner {
+      display: none;
+    }
+
+    // Firefox has no ::-webkit-scrollbar; the standard properties are the closest match.
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--omni-window-scrollbar-thumb) var(--omni-window-scrollbar-track);
+    }
   }
 
   .omni-window-footer {
