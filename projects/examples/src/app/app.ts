@@ -34,6 +34,8 @@ export class App {
   protected readonly modal = signal(true);
   protected readonly standaloneOpen = signal(false);
   protected readonly notesOpen = signal(true);
+  protected readonly snapToZones = signal(true);
+  protected readonly snapToWindows = signal(true);
   protected readonly log = signal<string[]>([]);
 
   protected setTheme(event: Event): void {

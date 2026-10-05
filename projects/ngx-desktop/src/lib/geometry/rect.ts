@@ -25,6 +25,15 @@ export function clampRect(rect: Rect, bounds: Rect): Rect {
 /**
  * @internal
  * @description
+ * Whether two rectangles overlap. Rectangles that only touch along an edge do not overlap.
+ */
+export function intersects(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+/**
+ * @internal
+ * @description
  * Moves a rectangle by the given delta, optionally keeping it inside bounds.
  */
 export function moveRect(start: Rect, dx: number, dy: number, bounds?: Rect): Rect {

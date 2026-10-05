@@ -12,6 +12,7 @@ function fakeWindow(id: string, visible = true): DesktopWindow & { visible: Retu
     icon: signal<string | undefined>(undefined),
     visible: signal(visible),
     minimized: signal(false),
+    maximized: signal(false),
     rect: signal<Rect | null>(null),
     restore: vi.fn(),
   };
@@ -84,6 +85,24 @@ describe('DesktopService', () => {
     Object.defineProperty(element, 'clientHeight', { value: 480 });
     service.attachContainer(element);
     expect(service.bounds()).toEqual({ x: 0, y: 0, width: 640, height: 480 });
+  });
+
+  it('publishes the container size when it changes', () => {
+    const element = document.createElement('div');
+    let width = 640;
+    Object.defineProperty(element, 'clientWidth', { get: () => width });
+    Object.defineProperty(element, 'clientHeight', { value: 480 });
+    service.attachContainer(element);
+    service.updateSize();
+    const first = service.size();
+    expect(first).toEqual({ width: 640, height: 480 });
+
+    service.updateSize();
+    expect(service.size()).toBe(first); // unchanged size → same object, no signal notification
+
+    width = 800;
+    service.updateSize();
+    expect(service.size()).toEqual({ width: 800, height: 480 });
   });
 
   it('reports empty bounds without a container', () => {

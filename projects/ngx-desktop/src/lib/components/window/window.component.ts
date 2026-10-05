@@ -19,6 +19,7 @@ import {
   ElementRef,
   inject,
   input,
+  untracked,
   model,
   numberAttribute,
   output,
@@ -28,10 +29,12 @@ import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
 import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
 import { placeRect } from '../../geometry/placement';
+import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
 import { clampRect, moveRect } from '../../geometry/rect';
 import { resizeRect } from '../../geometry/resize';
+import { detectZone, zoneRect } from '../../geometry/snap-zones';
 import { DesktopWindow } from '../../models/desktop-window';
-import { DesktopTheme, Rect, ResizeDirection, WindowPosition } from '../../models/types';
+import { DesktopTheme, Rect, ResizeDirection, Size, SnapZone, WindowPosition } from '../../models/types';
 import { DesktopService } from '../../services/desktop.service';
 import { blockBodyScroll, unblockBodyScroll } from '../../utils/body-scroll';
 import { uniqueId } from '../../utils/unique-id';
@@ -122,6 +125,8 @@ export class WindowComponent implements DesktopWindow {
   readonly fullScreenable = input(true, { transform: booleanAttribute });
   /** Keeps the window inside the desktop (or viewport) while dragging and resizing. */
   readonly keepInBounds = input(true, { transform: booleanAttribute });
+  /** Whether this window snaps to zones and other windows (only inside a desktop with snapping enabled). */
+  readonly snappable = input(true, { transform: booleanAttribute });
 
   /** Whether the window is shown. Set to `false` by the close button. */
   readonly visible = model(true);
@@ -135,6 +140,8 @@ export class WindowComponent implements DesktopWindow {
   readonly resizeStart = output<Rect>();
   readonly resizeEnd = output<Rect>();
   readonly fullScreenChange = output<boolean>();
+  /** Emitted when the window is snapped into a zone, and with `null` when it is dragged out of it. */
+  readonly snapped = output<SnapZone | null>();
 
   /** Current position and size, relative to the desktop (or viewport). `null` until measured. */
   readonly rect = signal<Rect | null>(null);
@@ -147,6 +154,14 @@ export class WindowComponent implements DesktopWindow {
 
   private readonly standaloneZ = signal(this.config.zIndex.window);
   private interactionStart: Rect | null = null;
+  /** The zone under the pointer during the current drag. */
+  private dragZone: SnapZone | null = null;
+  /** The zone the window is snapped into, kept so it can re-fit when the desktop is resized. */
+  private snapZone: SnapZone | null = null;
+  /** Size before the window was snapped into a zone; restored when it is dragged out again. */
+  private restoreSize: Size | null = null;
+  /** A snapped window is only un-snapped once it actually moves, not on a plain click. */
+  private unsnapPending = false;
 
   /** Collapsed to a title bar (minimized while not inside a desktop). */
   protected readonly collapsed = computed(() => this.minimized() && !this.desktop);
@@ -185,6 +200,14 @@ export class WindowComponent implements DesktopWindow {
     this.desktop?.register(this);
 
     afterNextRender(() => this.initRect());
+
+    // Inside a desktop: follow changes of the desktop's size.
+    effect(() => {
+      const desktop = this.desktop;
+      if (!desktop) return;
+      desktop.size();
+      untracked(() => this.fitToBounds());
+    });
 
     // A maximized window outside a desktop covers the viewport; stop the page behind it from scrolling.
     effect((onCleanup) => {
@@ -247,19 +270,59 @@ export class WindowComponent implements DesktopWindow {
   protected onDragStart(): void {
     this.interactionStart = this.rect();
     this.interacting.set(!!this.interactionStart);
+    this.unsnapPending = !!this.restoreSize;
   }
 
   protected onDragMove(event: DragPointerEvent): void {
     if (!this.interactionStart) return;
-    const bounds = this.keepInBounds() ? this.visibleBounds() : undefined;
-    this.rect.set(moveRect(this.interactionStart, event.dx, event.dy, bounds));
+    if (this.unsnapPending) this.unsnap(event);
+
+    const start = this.interactionStart;
+    const bounds = this.bounds();
+    let next = moveRect(start, event.dx, event.dy, this.keepInBounds() ? this.visibleBounds() : undefined);
+
+    const desktop = this.snappingDesktop();
+    if (desktop) {
+      const { snapToZones, snapToWindows, snapThreshold } = desktop.settings;
+      const pointer = desktop.toLocal(event.clientX, event.clientY);
+      this.dragZone = snapToZones() ? detectZone(pointer, bounds, snapThreshold()) : null;
+      if (!this.dragZone && snapToWindows()) {
+        next = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold());
+        if (this.keepInBounds()) next = clampRect(next, bounds);
+      }
+      desktop.showSnapPreview(this.dragZone ? { rect: zoneRect(this.dragZone, bounds), zIndex: this.zIndex() } : null);
+    }
+
+    this.rect.set(next);
   }
 
   protected onDragEnd(): void {
+    const zone = this.dragZone;
+    const start = this.interactionStart;
+    this.dragZone = null;
+    this.unsnapPending = false;
+    this.desktop?.showSnapPreview(null);
+
+    if (zone && start) {
+      // Remember the size to go back to when the window is dragged out of the zone again.
+      this.restoreSize = { width: start.width, height: start.height };
+      if (zone === 'maximize') {
+        this.restoreSize = null;
+        this.rect.set(start);
+        this.maximized.set(true);
+      } else {
+        this.snapZone = zone;
+        this.rect.set(zoneRect(zone, this.bounds()));
+      }
+      this.snapped.emit(zone);
+    }
     this.finishInteraction(this.dragEnd);
   }
 
   protected onResizeStart(): void {
+    // A snapped window that is resized by hand keeps its new size.
+    this.restoreSize = null;
+    this.snapZone = null;
     this.interactionStart = this.rect();
     this.interacting.set(!!this.interactionStart);
     if (this.interactionStart) this.resizeStart.emit(this.interactionStart);
@@ -268,8 +331,22 @@ export class WindowComponent implements DesktopWindow {
   protected onResizeMove(direction: ResizeDirection, event: DragPointerEvent): void {
     if (!this.interactionStart) return;
     const minSize = { width: this.minWidth(), height: this.minHeight() };
-    const bounds = this.keepInBounds() ? this.bounds() : undefined;
-    this.rect.set(resizeRect(this.interactionStart, direction, event.dx, event.dy, minSize, bounds));
+    const bounds = this.bounds();
+    let next = resizeRect(
+      this.interactionStart,
+      direction,
+      event.dx,
+      event.dy,
+      minSize,
+      this.keepInBounds() ? bounds : undefined
+    );
+
+    const desktop = this.snappingDesktop();
+    if (desktop?.settings.snapToWindows()) {
+      const others = desktop.otherRects(this.id);
+      next = magneticResize(next, direction, others, bounds, desktop.settings.snapThreshold(), minSize);
+    }
+    this.rect.set(next);
   }
 
   protected onResizeEnd(): void {
@@ -277,8 +354,8 @@ export class WindowComponent implements DesktopWindow {
   }
 
   protected onViewportResize(): void {
-    const rect = this.rect();
-    if (rect && this.keepInBounds()) this.rect.set(clampRect(rect, this.bounds()));
+    // Windows inside a desktop follow the desktop's own size instead (see constructor).
+    if (!this.desktop) this.fitToBounds();
   }
 
   protected onFullScreenChange(): void {
@@ -286,6 +363,41 @@ export class WindowComponent implements DesktopWindow {
     if (fullScreen === this.fullScreen()) return;
     this.fullScreen.set(fullScreen);
     this.fullScreenChange.emit(fullScreen);
+  }
+
+  /** Keeps a snapped window in its zone and other windows inside the bounds after a resize of the bounds. */
+  private fitToBounds(): void {
+    const rect = this.rect();
+    if (!rect || this.interactionStart) return;
+    const bounds = this.bounds();
+    if (this.snapZone) {
+      this.rect.set(zoneRect(this.snapZone, bounds));
+    } else if (this.keepInBounds()) {
+      this.rect.set(clampRect(rect, bounds));
+    }
+  }
+
+  /** The desktop, when this window takes part in snapping. */
+  private snappingDesktop(): DesktopService | null {
+    return this.desktop && this.snappable() ? this.desktop : null;
+  }
+
+  /**
+   * Leaves a snapped zone: the window gets its size from before the snap back, positioned so the
+   * point of the header under the pointer stays under the pointer (like Windows Aero Snap).
+   */
+  private unsnap(event: DragPointerEvent): void {
+    const start = this.interactionStart;
+    const size = this.restoreSize;
+    this.unsnapPending = false;
+    this.restoreSize = null;
+    this.snapZone = null;
+    if (!start || !size || !this.desktop) return;
+
+    const pointer = this.desktop.toLocal(event.startX, event.startY);
+    const ratio = start.width > 0 ? (pointer.x - start.x) / start.width : 0;
+    this.interactionStart = { x: pointer.x - ratio * size.width, y: start.y, ...size };
+    this.snapped.emit(null);
   }
 
   /** The area the window lives in: the desktop, or the viewport when standalone. */

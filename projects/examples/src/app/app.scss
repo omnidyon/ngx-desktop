@@ -31,7 +31,9 @@
   padding-left: 18px;
   font-size: 12px;
   opacity: 0.8;
-  max-height: 3.6em;
+  // Fixed height so new entries do not resize the toolbar (and with it the desktop).
+  height: 3.6em;
+  min-width: 220px;
   overflow: hidden;
 }
 

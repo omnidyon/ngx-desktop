@@ -21,6 +21,7 @@ export interface DesktopWindow {
   readonly icon: Signal<string | undefined>;
   readonly visible: Signal<boolean>;
   readonly minimized: Signal<boolean>;
+  readonly maximized: Signal<boolean>;
   readonly rect: Signal<Rect | null>;
   restore(): void;
 }

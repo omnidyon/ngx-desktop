@@ -6,8 +6,19 @@
  * found at https://www.isc.org/licenses/
  */
 
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core';
-import { DesktopService } from '../../services/desktop.service';
+import {
+  afterNextRender,
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  numberAttribute,
+} from '@angular/core';
+import { DEFAULT_SNAP_THRESHOLD, DesktopService } from '../../services/desktop.service';
 import { DesktopTheme, DockPosition } from '../../models/types';
 import { DockComponent } from '../dock/dock.component';
 
@@ -15,11 +26,18 @@ import { DockComponent } from '../dock/dock.component';
  * @publicApi
  * @description
  * A container for windows. It fills its parent element, keeps the windows inside it,
- * manages their stacking order and shows a dock with a tab per open window.
- * (Replaces `sgm-window-mediator`.)
+ * manages their stacking order, shows a dock with a tab per open window and snaps
+ * windows into place while they are dragged. (Replaces `sgm-window-mediator`.)
+ *
+ * Snapping:
+ * - **Zones** (`snapToZones`): drag a window with the pointer to the left/right edge to fill
+ *   that half, to a corner for a quarter, to the top edge to maximize. A preview shows the target.
+ *   Dragging a snapped window out again restores its previous size.
+ * - **Windows** (`snapToWindows`): edges within `snapThreshold` px of another window's edge
+ *   (or the desktop's edge) line up with it, while moving and while resizing.
  *
  * @usageNotes
- * <omni-desktop theme="neo-tokyo" dock="bottom">
+ * <omni-desktop theme="neo-tokyo" dock="bottom" [snapThreshold]="20">
  *   <omni-window header="Win 1" position="topleft">...</omni-window>
  *   <omni-window header="Win 2" position="right">...</omni-window>
  * </omni-desktop>
@@ -36,12 +54,19 @@ import { DockComponent } from '../dock/dock.component';
   },
 })
 export class DesktopComponent {
-  private readonly service = inject(DesktopService);
+  protected readonly service = inject(DesktopService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Theme preset for the desktop, its dock and every window in it. */
   readonly theme = input<DesktopTheme>();
   /** Where the dock is shown; `none` hides it. */
   readonly dock = input<DockPosition>('bottom');
+  /** Snap windows to halves, quarters or maximized when dragged to an edge or corner. */
+  readonly snapToZones = input(true, { transform: booleanAttribute });
+  /** Line window edges up with nearby edges of other windows and the desktop. */
+  readonly snapToWindows = input(true, { transform: booleanAttribute });
+  /** Distance in px at which edges and zones attract a window. */
+  readonly snapThreshold = input(DEFAULT_SNAP_THRESHOLD, { transform: numberAttribute });
 
   protected readonly dockPosition = computed(() => {
     const dock = this.dock();
@@ -54,6 +79,21 @@ export class DesktopComponent {
   });
 
   constructor() {
-    this.service.attachContainer(inject(ElementRef).nativeElement);
+    const element: HTMLElement = inject(ElementRef).nativeElement;
+    this.service.attachContainer(element);
+    this.service.settings = {
+      snapToZones: this.snapToZones,
+      snapToWindows: this.snapToWindows,
+      snapThreshold: this.snapThreshold,
+    };
+
+    // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).
+    afterNextRender(() => {
+      this.service.updateSize();
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(() => this.service.updateSize());
+      observer.observe(element);
+      this.destroyRef.onDestroy(() => observer.disconnect());
+    });
   }
 }

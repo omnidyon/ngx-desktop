@@ -1,3 +1,15 @@
+<!-- Rendered before the windows: with the same z-index as the dragged window it paints just below it. -->
+@if (service.snapPreview(); as preview) {
+  <div
+    class="omni-snap-preview"
+    aria-hidden="true"
+    animate.enter="omni-snap-preview-in"
+    [style.transform]="'translate3d(' + preview.rect.x + 'px, ' + preview.rect.y + 'px, 0)'"
+    [style.width.px]="preview.rect.width"
+    [style.height.px]="preview.rect.height"
+    [style.z-index]="preview.zIndex"
+  ></div>
+}
 <ng-content />
 @if (dockPosition(); as position) {
   <omni-dock [position]="position" />

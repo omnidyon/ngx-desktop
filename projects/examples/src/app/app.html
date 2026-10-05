@@ -19,6 +19,13 @@
     </select>
   </label>
 
+  <label
+    ><input type="checkbox" [checked]="snapToZones()" (change)="snapToZones.set(!snapToZones())" /> Snap to zones</label
+  >
+  <label
+    ><input type="checkbox" [checked]="snapToWindows()" (change)="snapToWindows.set(!snapToWindows())" /> Snap to
+    windows</label
+  >
   <label><input type="checkbox" [checked]="modal()" (change)="modal.set(!modal())" /> Modal dialog</label>
   <button type="button" (click)="dialogOpen.set(true)">Open dialog</button>
   <button type="button" (click)="standaloneOpen.set(!standaloneOpen())">Toggle standalone window</button>
@@ -32,16 +39,21 @@
 </header>
 
 <main class="workspace">
-  <omni-desktop [theme]="theme()" [dock]="dock()">
+  <omni-desktop [theme]="theme()" [dock]="dock()" [snapToZones]="snapToZones()" [snapToWindows]="snapToWindows()">
     <omni-window
       header="Angular"
       icon="icons/angular.svg"
       position="topleft"
       (dragEnd)="record('Angular dragged to ' + $event.x + ', ' + $event.y)"
       (resizeEnd)="record('Angular resized to ' + $event.width + ' × ' + $event.height)"
+      (snapped)="record($event ? 'Angular snapped: ' + $event : 'Angular unsnapped')"
     >
       <h2>Angular</h2>
       <p>Drag me by the header, resize me from any edge or corner, double-click the header to maximize.</p>
+      <p>
+        Drag me to the left or right edge to fill half the desktop, into a corner for a quarter, or to the top edge to
+        maximize. Drag me near another window and my edges line up with it.
+      </p>
     </omni-window>
 
     <omni-window header="Nest" icon="icons/nest.svg" position="right" theme="neo-tokyo" [width]="360" [height]="240">

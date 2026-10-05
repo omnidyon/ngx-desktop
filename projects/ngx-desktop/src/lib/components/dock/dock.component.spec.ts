@@ -12,6 +12,7 @@ function fakeWindow(id: string, header: string, icon?: string): DesktopWindow {
     icon: signal(icon),
     visible: signal(true),
     minimized: signal(false),
+    maximized: signal(false),
     rect: signal<Rect | null>(null),
     restore: vi.fn(),
   };

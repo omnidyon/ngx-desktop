@@ -6,8 +6,10 @@
  * found at https://www.isc.org/licenses/
  */
 
+@use '../../styles/defaults';
 @use '../../styles/themes';
 
+@include defaults.snap-properties;
 @include themes.themes(window, dialog, dock);
 
 :host {
@@ -16,4 +18,30 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.omni-snap-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  background: var(--omni-snap-preview-background);
+  border: 2px solid var(--omni-snap-preview-border-color);
+  border-radius: var(--omni-window-border-radius);
+  pointer-events: none;
+  transition:
+    transform 120ms ease-out,
+    width 120ms ease-out,
+    height 120ms ease-out;
+}
+
+.omni-snap-preview-in {
+  animation: omni-snap-preview-in 120ms ease-out;
+}
+
+@keyframes omni-snap-preview-in {
+  from {
+    opacity: 0;
+    scale: 0.9;
+  }
 }

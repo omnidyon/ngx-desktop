@@ -196,3 +196,17 @@
     initial-value: 5px;
   }
 }
+
+@mixin snap-properties {
+  @property --omni-snap-preview-background {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.15);
+  }
+
+  @property --omni-snap-preview-border-color {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255, 255, 255, 0.6);
+  }
+}
