@@ -117,6 +117,35 @@ describe('DesktopService', () => {
     expect(service.size()).toEqual({ width: 640, height: 480 });
   });
 
+  it('counts every time the desktop is shown again or resized, but not identical measurements', () => {
+    const element = document.createElement('div');
+    let width = 640;
+    let height = 480;
+    Object.defineProperty(element, 'clientWidth', { get: () => width });
+    Object.defineProperty(element, 'clientHeight', { get: () => height });
+    service.attachContainer(element);
+    service.updateSize();
+    const afterFirst = service.shownCount();
+    service.updateSize();
+    expect(service.shownCount()).toBe(afterFirst);
+
+    width = 0;
+    height = 0;
+    service.updateSize();
+    expect(service.isHidden()).toBe(true);
+    expect(service.shownCount()).toBe(afterFirst);
+
+    width = 640;
+    height = 480;
+    service.updateSize(); // shown again at the same size
+    expect(service.isHidden()).toBe(false);
+    expect(service.shownCount()).toBe(afterFirst + 1);
+
+    width = 700;
+    service.updateSize(); // resized
+    expect(service.shownCount()).toBe(afterFirst + 2);
+  });
+
   it('converts pointer positions to desktop coordinates inside the border', () => {
     const element = document.createElement('div');
     Object.defineProperty(element, 'clientLeft', { value: 3 });

@@ -214,11 +214,6 @@ export class WindowComponent implements DesktopWindow {
   protected readonly canResize = computed(
     () => this.resizable() && !this.maximized() && !this.minimized() && !this.fullScreen()
   );
-  /** The desktop has a size the window can be placed in (a hidden desktop measures 0 × 0). */
-  private readonly desktopUsable = computed(() => {
-    const size = this.desktop?.size();
-    return !size || (size.width >= this.minWidth() && size.height >= this.minHeight());
-  });
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -255,13 +250,15 @@ export class WindowComponent implements DesktopWindow {
       untracked(() => this.onExternalRect(rect));
     });
 
-    // A window created while its desktop is hidden waits for a usable size before it is placed.
+    // A window created while its desktop is hidden is placed once the desktop is shown again.
+    // `shownCount` says "the desktop was measured again"; the live check decides.
     effect(() => {
-      if (!this.desktopUsable()) return;
+      this.desktop?.shownCount();
       untracked(() => {
+        if (!this.boundsWaiter || this.desktop?.isHidden()) return;
         const waiter = this.boundsWaiter;
         this.boundsWaiter = null;
-        waiter?.();
+        waiter();
       });
     });
 
@@ -501,7 +498,7 @@ export class WindowComponent implements DesktopWindow {
       }
     }
     if (this.destroyed) return;
-    await this.whenBoundsUsable();
+    await this.whenShown();
     if (this.destroyed) return;
 
     if (isWindowLayout(saved)) {
@@ -604,7 +601,7 @@ export class WindowComponent implements DesktopWindow {
   /** Keeps a snapped window in its zone and other windows inside the bounds after a resize of the bounds. */
   private fitToBounds(): void {
     const rect = this.rect();
-    if (!rect || !this.ready() || this.interactionStart || !this.boundsUsable()) return;
+    if (!rect || !this.ready() || this.interactionStart || this.desktop?.isHidden()) return;
     const bounds = this.bounds();
     const zone = this.snapZone();
     if (zone) {
@@ -687,15 +684,12 @@ export class WindowComponent implements DesktopWindow {
     return { x: 0, y: 0, width: view?.innerWidth ?? 0, height: view?.innerHeight ?? 0 };
   }
 
-  /** Whether the bounds can hold the window at its minimum size (a hidden desktop measures 0 × 0). */
-  private boundsUsable(): boolean {
-    const { width, height } = this.bounds();
-    return width >= this.minWidth() && height >= this.minHeight();
-  }
-
-  /** Resolves once the bounds are usable; right away when they already are, or outside a desktop. */
-  private whenBoundsUsable(): Promise<void> {
-    if (!this.desktop || this.boundsUsable()) return Promise.resolve();
+  /**
+   * Resolves once the desktop is visible: right away when it is (or outside a desktop). A visible
+   * desktop smaller than the window is fine; the window is then shrunk to fit.
+   */
+  private whenShown(): Promise<void> {
+    if (!this.desktop?.isHidden()) return Promise.resolve();
     return new Promise((resolve) => (this.boundsWaiter = resolve));
   }
 

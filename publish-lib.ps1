@@ -22,17 +22,23 @@ Invoke-Step 'npm run format:check'
 Invoke-Step 'npm test'
 Invoke-Step 'npm run test:examples'
 
-# 2. Bump the version; it is put back if the build or the publish fails.
+# 2. Bump the version; it is put back if the build or the publish fails, or the script is interrupted
+#    (PowerShell runs `finally` on Ctrl-C, but not `catch`).
 Copy-Item $libPackage "$libPackage.bak"
+$published = $false
 try {
   Push-Location projects/ngx-desktop
   try { Invoke-Step "npm version $Release --no-git-tag-version" } finally { Pop-Location }
   Invoke-Step 'npm run build'
   Invoke-Step 'npm publish ./dist/ngx-desktop --access public'
-  Remove-Item "$libPackage.bak"
-} catch {
-  Move-Item -Force "$libPackage.bak" $libPackage
-  Write-Error "Release failed; the version was restored. $_"
+  $published = $true
+} finally {
+  if ($published) {
+    Remove-Item "$libPackage.bak"
+  } else {
+    Move-Item -Force "$libPackage.bak" $libPackage
+    Write-Host 'Release failed or was interrupted; the version was restored.' -ForegroundColor Red
+  }
 }
 
 $version = (Get-Content $libPackage | ConvertFrom-Json).version

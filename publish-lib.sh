@@ -18,17 +18,18 @@ npm run format:check
 npm test
 npm run test:examples
 
-# 2. Bump the version; it is put back if the build or the publish fails.
+# 2. Bump the version; it is put back if the build or the publish fails, or the script is interrupted.
 cp "$LIB_PACKAGE" "$LIB_PACKAGE.bak"
 restore_version() {
   mv "$LIB_PACKAGE.bak" "$LIB_PACKAGE"
   echo "Release failed; the version was restored." >&2
 }
 trap restore_version ERR
+trap 'restore_version; exit 130' INT TERM
 (cd projects/ngx-desktop && npm version "$RELEASE" --no-git-tag-version > /dev/null)
 npm run build
 npm publish ./dist/ngx-desktop --access public
-trap - ERR
+trap - ERR INT TERM
 rm "$LIB_PACKAGE.bak"
 
 VERSION=$(node -p "require('./$LIB_PACKAGE').version")

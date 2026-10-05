@@ -50,6 +50,9 @@ export class DesktopService {
   private readonly _stack = signal<readonly string[]>([]);
   private readonly _snapPreview = signal<SnapPreview | null>(null);
   private readonly _size = signal<Size>({ width: 0, height: 0 });
+  private readonly _shownCount = signal(0);
+  /** The last measurement was 0 × 0 (the desktop is hidden). */
+  private measuredHidden = false;
 
   /** Replaced by `DesktopComponent` with its inputs. */
   settings: DesktopSettings = {
@@ -68,6 +71,11 @@ export class DesktopService {
   });
   /** Size of the desktop; changes whenever the desktop element is resized. */
   readonly size = this._size.asReadonly();
+  /**
+   * Goes up whenever the desktop is measured visible after being hidden, or at a new size.
+   * Unlike `size`, it also changes when a hidden desktop is shown again at the same size.
+   */
+  readonly shownCount = this._shownCount.asReadonly();
   /** Where a dragged window would snap to; shown as an overlay by the desktop. */
   readonly snapPreview = this._snapPreview.asReadonly();
 
@@ -90,10 +98,22 @@ export class DesktopService {
    * A hidden desktop measures 0 × 0; that is ignored, so windows keep their size until it is shown again.
    */
   updateSize(): void {
+    if (this.isHidden()) {
+      this.measuredHidden = true;
+      return;
+    }
     const { width, height } = this.bounds();
-    if (width === 0 || height === 0) return;
     const current = this._size();
-    if (current.width !== width || current.height !== height) this._size.set({ width, height });
+    const resized = current.width !== width || current.height !== height;
+    if (resized) this._size.set({ width, height });
+    if (resized || this.measuredHidden) this._shownCount.update((count) => count + 1);
+    this.measuredHidden = false;
+  }
+
+  /** Whether the desktop is hidden right now (`display: none`, an inactive tab…): it measures 0 × 0. */
+  isHidden(): boolean {
+    const { width, height } = this.bounds();
+    return width === 0 || height === 0;
   }
 
   /** Converts viewport (client) coordinates to container coordinates. */

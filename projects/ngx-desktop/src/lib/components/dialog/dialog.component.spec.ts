@@ -4,13 +4,23 @@ import { WindowFooterDirective } from '../../directives/window-slots.directive';
 import { DesktopTheme } from '../../models/types';
 import { DialogComponent } from './dialog.component';
 
-/** A dialog with only text and no close button: nothing inside it can take focus. */
+/** A modal dialog with only text and no close button: nothing inside it can take focus. */
 @Component({
   imports: [DialogComponent],
-  template: `<omni-dialog header="Info" [closable]="false"><p>Just text.</p></omni-dialog>`,
+  template: `<omni-dialog header="Info" [modal]="true" [closable]="false"><p>Just text.</p></omni-dialog>`,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 class PlainDialogHostComponent {}
+
+/** Dialogs that are already open when the page renders. */
+@Component({
+  imports: [DialogComponent],
+  template: `<omni-dialog header="On load" [modal]="modal"><input class="load-field" /></omni-dialog>`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class OpenOnLoadHostComponent {
+  modal = false;
+}
 
 @Component({
   imports: [DialogComponent, WindowFooterDirective],
@@ -139,6 +149,23 @@ describe('DialogComponent', () => {
       await plain.whenStable();
       const panel = (plain.nativeElement as HTMLElement).querySelector('.omni-dialog');
       expect(document.activeElement).toBe(panel);
+    });
+
+    it('does not take focus when a non-modal dialog is already open on page load', async () => {
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      outside.focus();
+      const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
+      await onLoad.whenStable();
+      expect(document.activeElement).toBe(outside);
+      outside.remove();
+    });
+
+    it('takes focus when a modal dialog is already open on page load', async () => {
+      const onLoad = TestBed.createComponent(OpenOnLoadHostComponent);
+      onLoad.componentInstance.modal = true;
+      await onLoad.whenStable();
+      expect(document.activeElement).toBe((onLoad.nativeElement as HTMLElement).querySelector('.load-field'));
     });
 
     it('keeps Tab inside a modal dialog', async () => {

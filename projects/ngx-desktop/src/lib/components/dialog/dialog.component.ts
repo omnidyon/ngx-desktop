@@ -20,6 +20,7 @@ import {
   input,
   model,
   output,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
@@ -46,7 +47,7 @@ const FOCUSABLE = [
  * but is not draggable or resizable.
  *
  * Keyboard: when it opens, focus moves to the first control in its content or footer (or to the
- * dialog itself); while it is modal, Tab stays inside it; when it closes, focus goes back to where it
+ * dialog itself) — except for a non-modal dialog that is already open when the page renders; while it is modal, Tab stays inside it; when it closes, focus goes back to where it
  * was. Escape closes the topmost open dialog only.
  *
  * @usageNotes
@@ -91,6 +92,8 @@ export class DialogComponent {
   /** The rendered panel while the dialog is open, and the element that had focus before it opened. */
   private openPanel: HTMLElement | null = null;
   private returnFocus: HTMLElement | null = null;
+  /** Set after the first render: a non-modal dialog that is already open then does not take focus. */
+  private rendered = false;
 
   protected readonly hostClasses = computed(() => {
     const theme = this.theme();
@@ -105,7 +108,11 @@ export class DialogComponent {
     // Runs after rendering, so the panel exists (or is gone) when focus is moved.
     afterRenderEffect(() => {
       const panel = this.panel()?.nativeElement ?? null;
-      if (panel && panel !== this.openPanel) this.onOpened(panel);
+      const firstRender = !this.rendered;
+      this.rendered = true;
+      // Opened by the user (after the first render) or modal: move focus in. A non-modal dialog that is
+      // simply open when the page loads leaves focus where it is.
+      if (panel && panel !== this.openPanel) this.onOpened(panel, !firstRender || untracked(this.modal));
       if (!panel && this.openPanel) this.onClosed();
     });
 
@@ -145,9 +152,10 @@ export class DialogComponent {
     }
   }
 
-  private onOpened(panel: HTMLElement): void {
+  private onOpened(panel: HTMLElement, takeFocus: boolean): void {
     this.openPanel = panel;
     this.stack.push(this);
+    if (!takeFocus) return;
     const active = this.document.activeElement;
     this.returnFocus = active instanceof HTMLElement && active !== this.document.body ? active : null;
     // Prefer a control in the content or footer over the header's close button.
