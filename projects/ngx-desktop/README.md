@@ -4,6 +4,8 @@ A desktop-style window manager for Angular: draggable, resizable windows with sn
 
 > Work in progress. Full documentation (usage, inputs/outputs) will be added before the first release.
 
+**Compatibility:** Angular 21 and 22. Checked with Angular 22.2.1 and TypeScript 6.0: the package built with Angular 21 works unchanged in an Angular 22 app (build, unit tests and the end-to-end suite pass).
+
 <details><summary><b style="font-size: 20px;">Snapping</b></summary>
 
 Windows inside an `<omni-desktop>` snap into place while they are dragged:
