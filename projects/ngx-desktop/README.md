@@ -1,10 +1,94 @@
-# @omnidyon/ngx-desktop
+<div align="center">
+  <h1>Ngx Desktop</h1>
+</div>
 
-A desktop-style window manager for Angular: draggable, resizable windows with snap-in-place, optional no-overlap layout, a dock and dialogs. Themeable via CSS variables.
+<p align="center">
+A desktop-style window manager for Angular: draggable, resizable windows and widgets with snap-in-place, snap
+layouts, an optional no-overlap layout, a dock and dialogs. Signal-based, zoneless-ready and themeable with CSS
+variables.
+</p>
 
-> Work in progress. Full documentation (usage, inputs/outputs) will be added before the first release.
+<p align="center"><b>Works with Angular 21 and 22.</b></p>
 
-**Compatibility:** Angular 21 and 22. Checked with Angular 22.2.1 and TypeScript 6.0: the package built with Angular 21 works unchanged in an Angular 22 app (build, unit tests and the end-to-end suite pass).
+---
+
+<details><summary><b style="font-size: 20px;">Installing</b></summary>
+<p>
+
+Add the library to your project:
+
+```bash
+npm install @omnidyon/ngx-desktop
+```
+
+It has no dependencies besides Angular (`@angular/core` and `@angular/common` 21 or 22) and `tslib`. Checked with
+Angular 22.2.1 and TypeScript 6.0: the package built with Angular 21 works unchanged in an Angular 22 app.
+
+</p>
+</details>
+
+---
+
+<details><summary><b style="font-size: 20px;">Usage Examples</b></summary>
+<p>
+
+Import the components you use; everything is standalone:
+
+```ts
+import { DesktopComponent, DialogComponent, WindowComponent } from '@omnidyon/ngx-desktop';
+
+@Component({
+  selector: 'app-root',
+  imports: [DesktopComponent, WindowComponent, DialogComponent],
+  templateUrl: './app.html',
+})
+export class App {
+  readonly confirmOpen = signal(false);
+}
+```
+
+A desktop with two windows. `<omni-desktop>` fills its parent, so give the parent a size:
+
+<!-- prettier-ignore -->
+```html
+<main style="height: 100vh">
+  <omni-desktop theme="neo-tokyo" [snapPadding]="8">
+    <omni-window header="Editor" position="left" persistKey="editor">
+      Window content
+    </omni-window>
+    <omni-window header="Preview" icon="icons/preview.svg" position="right" [width]="480" [height]="320">
+      <span omniWindowHeader>Preview <small>(live)</small></span>
+      Window content
+      <div omniWindowFooter><button>Refresh</button></div>
+    </omni-window>
+  </omni-desktop>
+</main>
+```
+
+A window outside a desktop floats over the page and is kept inside the viewport:
+
+```html
+<omni-window header="Help" position="bottomright" [width]="320" [height]="200">Floating help</omni-window>
+```
+
+A dialog, modal or not, with a footer:
+
+<!-- prettier-ignore -->
+```html
+<omni-dialog header="Delete file?" modal [(visible)]="confirmOpen">
+  This cannot be undone.
+  <div omniWindowFooter>
+    <button (click)="confirmOpen.set(false)">Cancel</button>
+  </div>
+</omni-dialog>
+```
+
+The sections below describe each feature; the [API reference](#api-reference) lists every input, output and method.
+
+</p>
+</details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Snapping</b></summary>
 
@@ -42,6 +126,8 @@ A single window can opt out with `[snappable]="false"`; `(snapped)` emits the zo
 
 </details>
 
+---
+
 <details><summary><b style="font-size: 20px;">Overlap</b></summary>
 
 Set `[allowOverlap]="false"` on `<omni-desktop>` to keep windows from overlapping. The window you move, resize, snap,
@@ -66,6 +152,8 @@ are left as they are.
 ```
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Widget mode</b></summary>
 
@@ -112,6 +200,8 @@ lives, such as a chart that polls an API. Its state is lost each time it is dest
 
 </details>
 
+---
+
 <details><summary><b style="font-size: 20px;">Positioning</b></summary>
 
 Where a window starts, first match wins:
@@ -142,6 +232,8 @@ code. A rect set from code is kept inside the desktop when `keepInBounds` is on.
 ```
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Persisting layout</b></summary>
 
@@ -188,6 +280,8 @@ bootstrapApplication(App, { providers: [provideDesktopLayoutStorage(new ApiLayou
 `InMemoryLayoutStorage` is also exported, for tests.
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Persisting dynamic windows (sessions)</b></summary>
 
@@ -237,6 +331,8 @@ export class App {
 
 </details>
 
+---
+
 <details><summary><b style="font-size: 20px;">Motion</b></summary>
 
 Windows open, close, minimize and restore with short animations. A window minimized inside a desktop shrinks into its
@@ -259,6 +355,8 @@ bootstrapApplication(App, { providers: [provideDesktopConfig({ motion: 'full' })
 The animation length is `--omni-window-transition-duration` (see _Styling_).
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Dock</b></summary>
 
@@ -294,6 +392,8 @@ A pinned window has to stay in the template: closing it only hides it. Windows c
 (see _Persisting dynamic windows_) are removed when closed, so they cannot be pinned.
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Desktop API</b></summary>
 
@@ -340,6 +440,8 @@ limits and un-maximize windows. With `allowOverlap` off, tiles make room for the
 
 </details>
 
+---
+
 <details><summary><b style="font-size: 20px;">Keyboard</b></summary>
 
 Every window's title bar (a widget's grip) is a tab stop. Focus moving into a window brings it to the front. On a
@@ -364,6 +466,8 @@ The dock is a single tab stop (the last tab you used, or the focused window's). 
 wrapping around; Home / End go to the first / last tab; Enter or Space restores or raises that window.
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Labels and translation</b></summary>
 
@@ -410,6 +514,8 @@ provideDesktopConfig({ labels });
 Placeholders in `{braces}` are filled in; keep them in translations.
 
 </details>
+
+---
 
 <details><summary><b style="font-size: 20px;">Styling</b></summary>
 
@@ -470,6 +576,8 @@ omni-desktop {
 
 </details>
 
+---
+
 <details><summary><b style="font-size: 20px;">Themes</b></summary>
 
 `<omni-desktop>`, `<omni-window>` and `<omni-dialog>` accept a `theme` input. A theme set on a desktop applies to its
@@ -484,4 +592,127 @@ Available themes: `default`, `aqua`, `discord`, `light`, `neo-san-francisco`, `n
 </omni-desktop>
 ```
 
+</details>
+
+---
+
+<a name="api-reference"></a>
+
+<details><summary><b style="font-size: 20px;">API reference</b></summary>
+<p>
+
+**`<omni-desktop>`** (`DesktopComponent`, template reference `#desk="omniDesktop"`)
+
+| Input           | Type           | Default    | Meaning                                                              |
+| --------------- | -------------- | ---------- | -------------------------------------------------------------------- |
+| `theme`         | `DesktopTheme` | –          | theme of the desktop, its dock and its windows (see _Themes_)        |
+| `dock`          | `DockPosition` | `'bottom'` | `'bottom'`, `'top'`, `'left'`, `'right'` or `'none'` (see _Dock_)    |
+| `snapToZones`   | `boolean`      | `true`     | snap to halves / quarters / maximize at the edges (see _Snapping_)   |
+| `snapToWindows` | `boolean`      | `true`     | line edges up with other windows and the desktop edges               |
+| `snapThreshold` | `number`       | `16`       | distance in px at which edges and zones attract a window             |
+| `snapPadding`   | `number`       | `0`        | gap in px around and between snapped windows                         |
+| `snapLayouts`   | `boolean`      | `true`     | snap layouts flyout on the maximize button                           |
+| `gridSize`      | `number`       | `0`        | grid in px for dragging, resizing and arrow keys; `0` = no grid      |
+| `allowOverlap`  | `boolean`      | `true`     | `false`: a window that would overlap another adjusts (see _Overlap_) |
+
+| Member                           | Meaning                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `windows()`                      | signal: every window and widget as `DesktopWindowInfo`                   |
+| `focusedId()`                    | signal: id of the window in front                                        |
+| `showingDesktop()`               | signal: windows hidden by `toggleShowDesktop()` are still minimized      |
+| `focus(id)`                      | show a window (restoring it when minimized or closed) and bring it front |
+| `minimizeAll()` / `restoreAll()` | minimize every `minimizable` window / restore every minimized one        |
+| `toggleShowDesktop()`            | minimize all windows; the next call brings back the ones it minimized    |
+| `closeAll()`                     | close every `closable` window and widget                                 |
+| `tile(mode?, { include? })`      | arrange open items in a grid (`'auto'`), `'columns'` or `'rows'`         |
+| `cascade({ include? })`          | stack open items diagonally; does nothing when overlap is off            |
+
+**`<omni-window>`** (`WindowComponent`)
+
+| Input            | Type                       | Default    | Meaning                                                          |
+| ---------------- | -------------------------- | ---------- | ---------------------------------------------------------------- |
+| `header`         | `string`                   | `''`       | title in the header, the dock and announcements                  |
+| `icon`           | `string`                   | –          | image URL in the header; also the dock tab                       |
+| `position`       | `WindowPosition`           | `'center'` | initial placement: `center`, `top`, `bottomright`, …             |
+| `x`, `y`         | `number \| string`         | –          | initial left / top edge: px or `'25%'` of the desktop (viewport) |
+| `width`,`height` | `number \| string`         | CSS vars   | initial size: px or percent                                      |
+| `minWidth`       | `number`                   | `130`      | smallest width in px                                             |
+| `minHeight`      | `number`                   | `65`       | smallest height in px                                            |
+| `maxWidth`       | `number \| string`         | –          | largest width: px or percent                                     |
+| `maxHeight`      | `number \| string`         | –          | largest height: px or percent                                    |
+| `theme`          | `DesktopTheme`             | –          | overrides the desktop's theme                                    |
+| `closable`       | `boolean`                  | `true`     | close button                                                     |
+| `minimizable`    | `boolean`                  | `true`     | minimize button                                                  |
+| `maximizable`    | `boolean`                  | `true`     | maximize button (and snap layouts)                               |
+| `fullScreenable` | `boolean`                  | `true`     | full-screen button                                               |
+| `draggable`      | `boolean`                  | `true`     | can be moved                                                     |
+| `resizable`      | `boolean`                  | `true`     | can be resized from every edge and corner                        |
+| `keepInBounds`   | `boolean`                  | `true`     | stays inside the desktop (viewport) while dragged and resized    |
+| `snappable`      | `boolean`                  | `true`     | takes part in snapping                                           |
+| `widget`         | `boolean`                  | `false`    | widget mode: no title bar, no dock tab (see _Widget mode_)       |
+| `badge`          | `string \| number \| null` | –          | shown on the dock tab; `null`, `''` and `0` hide it              |
+| `pinned`         | `boolean`                  | `false`    | keep the dock tab while closed                                   |
+| `persistKey`     | `string`                   | –          | save and restore the layout under this key                       |
+
+| Two-way (`[(…)]`) | Type           | Meaning                                               |
+| ----------------- | -------------- | ----------------------------------------------------- |
+| `visible`         | `boolean`      | shown; set to `false` by the close button             |
+| `minimized`       | `boolean`      | minimized into the dock (collapsed outside a desktop) |
+| `maximized`       | `boolean`      | fills the desktop (viewport)                          |
+| `rect`            | `Rect \| null` | position and size in px; set it to move the window    |
+
+| Output             | Payload            | When                                           |
+| ------------------ | ------------------ | ---------------------------------------------- |
+| `closed`           | –                  | the close button (or `close()`) was used       |
+| `dragEnd`          | `Rect`             | a move ended (mouse, touch or keyboard)        |
+| `resizeStart`      | `Rect`             | a resize started                               |
+| `resizeEnd`        | `Rect`             | a resize ended                                 |
+| `snapped`          | `SnapZone \| null` | snapped into a zone; `null` when it leaves one |
+| `fullScreenChange` | `boolean`          | entered or left full screen                    |
+
+Methods: `focus()`, `restore()`, `close()`, `minimize()`, `toggleMinimize()`, `toggleMaximize()`,
+`toggleFullScreen()`, `snapTo(zone)`, `forgetLayout()`.
+
+Content slots: `[omniWindowHeader]` (replaces the title), `[omniWindowFooter]`, and
+`<ng-template omniWindowContent>` (content that only exists while the window is shown).
+
+**`<omni-dialog>`** (`DialogComponent`)
+
+| Input / model   | Type           | Default | Meaning                               |
+| --------------- | -------------- | ------- | ------------------------------------- |
+| `header`        | `string`       | `''`    | title                                 |
+| `theme`         | `DesktopTheme` | –       | theme                                 |
+| `modal`         | `boolean`      | `false` | dims the page behind it and blocks it |
+| `closable`      | `boolean`      | `true`  | close button                          |
+| `closeOnEscape` | `boolean`      | `true`  | Escape closes it                      |
+| `[(visible)]`   | `boolean`      | `true`  | shown                                 |
+| `(closed)`      | –              |         | it was closed                         |
+
+Method: `close()`. Slots: `[omniWindowHeader]`, `[omniWindowFooter]`.
+
+**Directives**
+
+| Directive                           | Meaning                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `[omniDraggable]`                   | pointer drag handle: `(dragStart)`, `(dragMove)` (once per frame), `(dragEnd)` |
+| `<ng-template omniDockTab let-tab>` | custom inside of every dock tab, gets a `DockTabContext` (see _Dock_)          |
+
+**Functions and tokens**
+
+| Name                                                | Meaning                                                                    |
+| --------------------------------------------------- | -------------------------------------------------------------------------- |
+| `provideDesktopConfig({ zIndex, motion, labels })`  | z-indexes, motion (`'system'`, `'full'`, `'none'`), translated labels      |
+| `provideDesktopLayoutStorage(storage)`              | where layouts are saved (default: IndexedDB)                               |
+| `provideDesktopSessionStorage(storage)`             | where dynamic windows of sessions are saved (default: IndexedDB)           |
+| `injectDesktopSession<T>(key)`                      | a session of dynamically opened windows (see _Persisting dynamic windows_) |
+| `injectDesktop(options?)`                           | the surrounding `<omni-desktop>`                                           |
+| `IndexedDbLayoutStorage`, `InMemoryLayoutStorage`   | layout storages                                                            |
+| `IndexedDbSessionStorage`, `InMemorySessionStorage` | session storages                                                           |
+| `DESKTOP_CONFIG`, `DESKTOP_LABELS`                  | the active configuration and labels                                        |
+
+**Types**: `Rect`, `Size`, `Length`, `WindowPosition`, `SnapZone`, `LayoutZone`, `DockPosition`, `DesktopTheme`,
+`TileMode`, `ArrangeTarget`, `ArrangeOptions`, `DesktopWindowInfo`, `DockTabContext`, `DragPointerEvent`,
+`DesktopMotion`, `DesktopConfig`, `DesktopLabels`, `WindowLayout`, `SessionWindow`.
+
+</p>
 </details>
