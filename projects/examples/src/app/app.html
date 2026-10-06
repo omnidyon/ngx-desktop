@@ -164,6 +164,7 @@
     >
       <p>This window always uses the <code>neo-tokyo</code> theme, whatever the desktop theme is.</p>
       <p>It starts at <code>x="62%" y="40"</code>, 360 × 240, and can grow to at most 480 × 320.</p>
+      <ng-template omniWindowContent><app-live-clock /></ng-template>
     </omni-window>
 
     <omni-window
@@ -197,6 +198,7 @@
         [width]="window.data.widget ? 240 : 320"
         [height]="window.data.widget ? 140 : 220"
         [widget]="!!window.data.widget"
+        [aspectRatio]="window.data.widget ? 240 / 140 : null"
         [persistKey]="window.key"
         (closed)="removeWindow(window)"
         (snapped)="record($event ? window.data.title + ' snapped: ' + $event : window.data.title + ' unsnapped')"

@@ -104,6 +104,9 @@
 
 <div class="omni-window-content" [hidden]="collapsed()">
   <ng-content />
+  @if (contentAlive() && lazyContent(); as content) {
+    <ng-container [ngTemplateOutlet]="content.template" />
+  }
 </div>
 
 <div class="omni-window-footer" [hidden]="!customFooter() || collapsed()">

@@ -95,6 +95,23 @@ Normal windows and widgets can share a desktop. Building widgets from an API res
 
 The grip's background can be changed with `--omni-widget-grip-background`.
 
+**Fixed shape.** `[aspectRatio]` (width ÷ height, e.g. `16 / 9` or `1`) keeps a widget's (or window's) shape. Resizing
+from an edge or a corner keeps it; zones, tiling and restored layouts give it the largest box of its shape that fits;
+min / max size, the desktop bounds and no-overlap still apply. Maximize and full screen fill everything. Magnetic
+snapping is skipped while resizing such a window, because it would break the shape.
+
+**Content only while shown.** Content in `<ng-template omniWindowContent>` exists only while the widget (or window)
+is shown: it is created when it is first opened and destroyed when it is closed or minimized (after the closing
+animation, at most 500 ms), then created anew when it comes back. Use it for content that costs something while it
+lives, such as a chart that polls an API. Its state is lost each time it is destroyed.
+
+<!-- prettier-ignore -->
+```html
+<omni-window widget header="Sales" [aspectRatio]="16 / 9">
+  <ng-template omniWindowContent><app-sales-chart /></ng-template>
+</omni-window>
+```
+
 </details>
 
 <details><summary><b style="font-size: 20px;">Positioning</b></summary>

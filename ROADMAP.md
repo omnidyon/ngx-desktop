@@ -25,7 +25,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 - [x] 9. Desktop API from code (`#desk="omniDesktop"`, `injectDesktop()`: windows, focus, minimize / restore all, show desktop, close all, tile, cascade)
 - [x] 10. Snap layouts on the maximize button (hover, long press, Alt+Z; halves, thirds, quarters, 2/3 + 1/3, main + side stack)
 - [x] 11. Dock extras (left / right positions, badges, custom tab template, pinned windows)
-- [ ] 12. Widget extras (aspect ratio, render content only while visible)
+- [x] 12. Widget extras (`aspectRatio`, `<ng-template omniWindowContent>` rendered only while shown)
 - [ ] 13. Draggable dialogs
 - [ ] 14. Grid snapping
 

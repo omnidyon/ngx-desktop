@@ -6,7 +6,7 @@
  * found at https://www.isc.org/licenses/
  */
 
-import { Directive } from '@angular/core';
+import { Directive, inject, TemplateRef } from '@angular/core';
 
 /**
  * @publicApi
@@ -37,3 +37,21 @@ export class WindowHeaderDirective {}
   host: { class: 'omni-window-footer-slot' },
 })
 export class WindowFooterDirective {}
+
+/**
+ * @publicApi
+ * @description
+ * Content of an `<omni-window>` (or widget) that exists only while the window is shown: it is created
+ * when the window is first opened and destroyed when the window is closed or minimized (after the
+ * closing animation), then created again on restore. Use it for content that costs something while it
+ * lives, such as a chart polling an API. Its state is lost when it is destroyed.
+ *
+ * @usageNotes
+ * <omni-window header="Sales">
+ *   <ng-template omniWindowContent><app-sales-chart /></ng-template>
+ * </omni-window>
+ */
+@Directive({ selector: 'ng-template[omniWindowContent]' })
+export class WindowContentDirective {
+  readonly template = inject(TemplateRef);
+}

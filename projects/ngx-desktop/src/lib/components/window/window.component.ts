@@ -26,10 +26,16 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { DESKTOP_CONFIG } from '../../config/desktop-config';
 import { DESKTOP_LABELS, formatLabel } from '../../config/desktop-labels';
 import { DraggableDirective, DragPointerEvent } from '../../directives/draggable.directive';
-import { WindowFooterDirective, WindowHeaderDirective } from '../../directives/window-slots.directive';
+import {
+  WindowContentDirective,
+  WindowFooterDirective,
+  WindowHeaderDirective,
+} from '../../directives/window-slots.directive';
+import { fitAspect, keepAspect } from '../../geometry/aspect-ratio';
 import { fitWithoutOverlap, limitMove, limitResize } from '../../geometry/fit';
 import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
@@ -65,6 +71,8 @@ export const KEYBOARD_STEP = 10;
 export const KEYBOARD_FINE_STEP = 1;
 /** @internal How long keyboard changes settle before they are announced (a held key repeats quickly). */
 export const ANNOUNCE_DELAY = 250;
+/** @internal Longest wait for the closing animation (no animation: the whole wait) before `omniWindowContent` is destroyed. */
+export const CONTENT_DESTROY_DELAY = 500;
 /** @internal How long the pointer rests on the maximize button before the snap layouts open. */
 export const LAYOUT_HOVER_DELAY = 400;
 /** @internal How long a touch on the maximize button lasts before it opens the snap layouts. */
@@ -99,12 +107,14 @@ let standaloneFrontId: string | null = null;
  * <omni-window header="Notes" icon="assets/notes.svg" x="25%" y="40" width="480" persistKey="notes">
  *   <span omniWindowHeader>Custom title</span>      -- optional, replaces icon + header
  *   Window content
+ *   <ng-template omniWindowContent>Only while shown</ng-template>  -- optional
  *   <div omniWindowFooter>Footer content</div>    -- optional
  * </omni-window>
  */
 @Component({
   selector: 'omni-window',
   imports: [
+    NgTemplateOutlet,
     DraggableDirective,
     CloseIconComponent,
     FullScreenIconComponent,
@@ -133,6 +143,7 @@ let standaloneFrontId: string | null = null;
     '(pointerdown)': 'focus()',
     // Keyboard focus moving into the window (Tab, a screen reader, element.focus()) raises it too.
     '(focusin)': 'focus()',
+    '(transitionend)': 'onTransitionEnd($event)',
     '(window:resize)': 'onViewportResize()',
     '(document:fullscreenchange)': 'onFullScreenChange()',
   },
@@ -170,6 +181,11 @@ export class WindowComponent implements DesktopWindow {
   readonly maxWidth = input<Length>();
   /** Largest height: px or a percentage of the desktop/viewport height. No limit by default. */
   readonly maxHeight = input<Length>();
+  /**
+   * Keeps the window's shape: width ÷ height, e.g. `16 / 9` or `1`. Resizing, snapping into zones, tiling
+   * and restored layouts keep it; maximize and full screen still fill everything. Unset: any shape.
+   */
+  readonly aspectRatio = input<number | null>(null);
   readonly closable = input(true, { transform: booleanAttribute });
   readonly draggable = input(true, { transform: booleanAttribute });
   readonly resizable = input(true, { transform: booleanAttribute });
@@ -227,6 +243,10 @@ export class WindowComponent implements DesktopWindow {
   protected readonly interacting = signal(false);
   protected readonly customHeader = contentChild(WindowHeaderDirective);
   protected readonly customFooter = contentChild(WindowFooterDirective);
+  /** Content that only exists while the window is shown (`<ng-template omniWindowContent>`). */
+  protected readonly lazyContent = contentChild(WindowContentDirective);
+  /** Whether `omniWindowContent` is rendered: from the first time the window is shown until it goes away. */
+  protected readonly contentAlive = signal(false);
   /** Id of the keyboard help text the title bar (or widget grip) points to. */
   protected readonly keyboardHelpId = `${this.id}-keys`;
   /** Text of the polite live region: what the last keyboard move, resize or snap did. */
@@ -260,6 +280,7 @@ export class WindowComponent implements DesktopWindow {
   private destroyed = false;
   private announceTimer: ReturnType<typeof setTimeout> | undefined;
   private layoutHoverTimer: ReturnType<typeof setTimeout> | undefined;
+  private contentTimer: ReturnType<typeof setTimeout> | undefined;
   private layoutPressTimer: ReturnType<typeof setTimeout> | undefined;
   /** A long press opened the snap layouts; the click that ends it must not maximize. */
   private skipMaximizeClick = false;
@@ -354,6 +375,20 @@ export class WindowComponent implements DesktopWindow {
       untracked(() => this.dockFlight.set(this.flightToDock()));
     });
 
+    // `omniWindowContent` lives while the window is shown; it is destroyed once the closing animation
+    // has ended (or after CONTENT_DESTROY_DELAY), so the window does not empty itself while it shrinks.
+    effect(() => {
+      const shown = this.ready() && !this.isAway();
+      untracked(() => {
+        clearTimeout(this.contentTimer);
+        if (shown) {
+          this.contentAlive.set(true);
+        } else if (this.contentAlive()) {
+          this.contentTimer = setTimeout(() => this.contentAlive.set(false), CONTENT_DESTROY_DELAY);
+        }
+      });
+    });
+
     // The snap layouts close when the window goes away or stops offering them.
     effect(() => {
       if (this.layoutsAvailable() && !this.isAway()) return;
@@ -407,6 +442,7 @@ export class WindowComponent implements DesktopWindow {
       clearTimeout(this.announceTimer);
       clearTimeout(this.layoutHoverTimer);
       clearTimeout(this.layoutPressTimer);
+      clearTimeout(this.contentTimer);
     });
   }
 
@@ -519,6 +555,13 @@ export class WindowComponent implements DesktopWindow {
     } else {
       this.keyboardMove(arrow.x * step, arrow.y * step);
     }
+  }
+
+  /** The closing fade has ended: `omniWindowContent` can go now instead of after the full wait. */
+  protected onTransitionEnd(event: TransitionEvent): void {
+    if (event.target !== this.element || event.propertyName !== 'opacity' || !this.isAway()) return;
+    clearTimeout(this.contentTimer);
+    this.contentAlive.set(false);
   }
 
   protected onMaximizeClick(): void {
@@ -679,8 +722,11 @@ export class WindowComponent implements DesktopWindow {
       this.maxSize(bounds)
     );
 
+    const start = this.interactionStart;
     const desktop = this.snappingDesktop();
-    if (desktop?.settings.snapToWindows()) {
+    if (this.ratio()) {
+      next = this.keepRatio(next, start, direction, this.keepInBounds() ? bounds : undefined);
+    } else if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const max = this.maxSize(bounds);
@@ -688,7 +734,8 @@ export class WindowComponent implements DesktopWindow {
     }
     const blocking = this.overlapDesktop();
     if (blocking) {
-      next = limitResize(next, this.interactionStart, direction, blocking.otherRects(this.id), this.snapPadding());
+      const limited = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
+      next = this.keepRatio(limited, start, direction, undefined, { width: limited.width, height: limited.height });
     }
     this.setRect(next);
   }
@@ -746,7 +793,9 @@ export class WindowComponent implements DesktopWindow {
     let next = resizeRect(start, direction, dx, dy, minSize, this.keepInBounds() ? bounds : undefined, maxSize);
 
     const desktop = this.snappingDesktop();
-    if (desktop?.settings.snapToWindows()) {
+    if (this.ratio()) {
+      next = this.keepRatio(next, start, direction, this.keepInBounds() ? bounds : undefined, maxSize);
+    } else if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const pulled = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding(), maxSize);
@@ -755,7 +804,10 @@ export class WindowComponent implements DesktopWindow {
       next = { ...next, width: right - next.x, height: bottom - next.y };
     }
     const blocking = this.overlapDesktop();
-    if (blocking) next = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
+    if (blocking) {
+      const limited = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
+      next = this.keepRatio(limited, start, direction, undefined, { width: limited.width, height: limited.height });
+    }
 
     this.setRect(next);
     this.resizeEnd.emit(next);
@@ -998,13 +1050,32 @@ export class WindowComponent implements DesktopWindow {
 
   /** Keeps a rect within the size limits. */
   private limit(rect: Rect, bounds: Rect): Rect {
-    return limitSize(rect, this.minSize(), this.maxSize(bounds));
+    const limited = limitSize(rect, this.minSize(), this.maxSize(bounds));
+    const ratio = this.ratio();
+    return ratio ? { ...limited, ...fitAspect(limited, ratio, this.minSize()) } : limited;
+  }
+
+  /** A usable `aspectRatio`, or `null`. */
+  private ratio(): number | null {
+    const ratio = this.aspectRatio();
+    return ratio && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
+  }
+
+  /** Keeps a resized rect at the aspect ratio, when there is one. */
+  private keepRatio(next: Rect, start: Rect, direction: ResizeDirection, bounds?: Rect, max?: Size): Rect {
+    const ratio = this.ratio();
+    if (!ratio) return next;
+    return keepAspect(next, start, direction, ratio, this.minSize(), max ?? this.maxSize(this.bounds()), bounds);
   }
 
   /** The rect of a snap zone for this window: maximize fills the desktop, other zones respect the maximum size. */
   private zoneTarget(zone: SnapZone, bounds: Rect): Rect {
     const rect = zoneRect(zone, bounds, this.snapPadding());
-    return zone === 'maximize' ? rect : limitZoneRect(zone, rect, this.maxSize(bounds));
+    if (zone === 'maximize') return rect;
+    const limited = limitZoneRect(zone, rect, this.maxSize(bounds));
+    const ratio = this.ratio();
+    // A fixed shape takes the largest box of that shape in the zone, against the zone's outer side.
+    return ratio ? limitZoneRect(zone, limited, fitAspect(limited, ratio)) : limited;
   }
 
   /** The desktop, when it does not allow windows to overlap. */

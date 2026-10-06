@@ -10,9 +10,11 @@ import {
   Rect,
   SessionWindow,
   WindowComponent,
+  WindowContentDirective,
   WindowFooterDirective,
   WindowHeaderDirective,
 } from '@omnidyon/ngx-desktop';
+import { LiveClockComponent } from './live-clock/live-clock.component';
 
 /** A window added with the "Add window" button; kept in a desktop session so it survives reloads. */
 interface DemoWindow {
@@ -42,7 +44,15 @@ const CASCADE_LENGTH = 10;
 
 @Component({
   selector: 'app-root',
-  imports: [DesktopComponent, WindowComponent, DialogComponent, WindowHeaderDirective, WindowFooterDirective],
+  imports: [
+    DesktopComponent,
+    WindowComponent,
+    DialogComponent,
+    WindowHeaderDirective,
+    WindowFooterDirective,
+    WindowContentDirective,
+    LiveClockComponent,
+  ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
