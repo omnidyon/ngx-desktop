@@ -20,13 +20,14 @@ Windows inside an `<omni-desktop>` snap into place while they are dragged:
   `lefttwothirds`, `righttwothirds`, `toprightthird`, `bottomrightthird`) behave like the others: they keep
   `snapPadding`, follow desktop resizes and are saved with `persistKey`.
 
-| `<omni-desktop>` input | Meaning                                                                     | Default |
-| ---------------------- | --------------------------------------------------------------------------- | ------- |
-| `snapToZones`          | snap to halves / quarters / maximize at the edges and corners               | `true`  |
-| `snapToWindows`        | line edges up with other windows and the desktop edges                      | `true`  |
-| `snapThreshold`        | distance in px at which edges and zones attract a window                    | `16`    |
-| `snapPadding`          | gap in px kept around and between snapped windows and from the desktop edge | `0`     |
-| `snapLayouts`          | snap layouts flyout on the maximize button (needs `snapToZones`)            | `true`  |
+| `<omni-desktop>` input | Meaning                                                                                                  | Default   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- | --------- |
+| `snapToZones`          | snap to halves / quarters / maximize at the edges and corners                                            | `true`    |
+| `snapToWindows`        | line edges up with other windows and the desktop edges                                                   | `true`    |
+| `snapThreshold`        | distance in px at which edges and zones attract a window                                                 | `16`      |
+| `snapPadding`          | gap in px kept around and between snapped windows and from the desktop edge                              | `0`       |
+| `snapLayouts`          | snap layouts flyout on the maximize button (needs `snapToZones`)                                         | `true`    |
+| `gridSize`             | grid in px: dragging, resizing and arrow keys put window edges on it; magnetic snapping is off while set | `0` (off) |
 
 A single window can opt out with `[snappable]="false"`; `(snapped)` emits the zone (or `null` when dragged out).
 
@@ -344,7 +345,7 @@ focused title bar:
 
 | Keys                | Action                                                                                 |
 | ------------------- | -------------------------------------------------------------------------------------- |
-| Arrow keys          | move the window 10px (Alt: 1px)                                                        |
+| Arrow keys          | move the window 10px, or one grid cell with `gridSize` (Alt: 1px)                      |
 | Shift + arrow keys  | resize from the right / bottom edge 10px (Alt: 1px)                                    |
 | Ctrl + Left / Right | snap to the left / right half                                                          |
 | Ctrl + Up           | maximize                                                                               |

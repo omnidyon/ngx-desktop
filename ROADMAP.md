@@ -27,7 +27,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 - [x] 11. Dock extras (left / right positions, badges, custom tab template, pinned windows)
 - [x] 12. Widget extras: `<ng-template omniWindowContent>` rendered only while shown
 - [-] 13. ~~Draggable dialogs~~ (dropped)
-- [ ] 14. Grid snapping
+- [x] 14. Grid snapping (`[gridSize]` on the desktop, opt-in: drag, resize and arrow keys)
 
 ## E. Release
 

@@ -50,6 +50,13 @@
           <span class="unit">px</span>
         </span>
       </label>
+      <label class="field">
+        <span>Grid</span>
+        <span class="control number">
+          <input type="number" min="0" max="200" step="10" [value]="gridSize()" (input)="setGridSize($event)" />
+          <span class="unit">px</span>
+        </span>
+      </label>
       <label class="switch">
         <input type="checkbox" role="switch" [checked]="allowOverlap()" (change)="allowOverlap.set(!allowOverlap())" />
         <span>Overlap</span>
@@ -129,6 +136,7 @@
     [snapToWindows]="snapToWindows()"
     [snapLayouts]="snapLayouts()"
     [snapPadding]="snapPadding()"
+    [gridSize]="gridSize()"
     [allowOverlap]="allowOverlap()"
   >
     <omni-window

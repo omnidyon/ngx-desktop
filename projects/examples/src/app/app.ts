@@ -85,6 +85,8 @@ export class App {
   protected readonly snapToWindows = signal(true);
   protected readonly snapLayouts = signal(true);
   protected readonly snapPadding = signal(8);
+  /** 0: no grid (the default). */
+  protected readonly gridSize = signal(0);
   protected readonly allowOverlap = signal(true);
   protected readonly log = signal<string[]>([]);
   protected readonly notesRect = signal<Rect | null>(null);
@@ -99,6 +101,10 @@ export class App {
 
   protected setSnapPadding(event: Event): void {
     this.snapPadding.set(Math.max(0, Number((event.target as HTMLInputElement).value) || 0));
+  }
+
+  protected setGridSize(event: Event): void {
+    this.gridSize.set(Math.max(0, Number((event.target as HTMLInputElement).value) || 0));
   }
 
   protected setDock(event: Event): void {

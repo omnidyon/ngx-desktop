@@ -100,6 +100,11 @@ export class DesktopComponent {
    * title bar) offers halves, thirds, quarters and more. Needs `snapToZones`.
    */
   readonly snapLayouts = input(true, { transform: booleanAttribute });
+  /**
+   * Grid in px: dragging, resizing and arrow keys put window edges on it (lines start at the desktop's
+   * top-left). Magnetic snapping to other windows is off while a grid is set; zones still work. 0 = no grid.
+   */
+  readonly gridSize = input(0, { transform: numberAttribute });
 
   /** Every window and widget of the desktop, in the order they were added (closed ones included). */
   readonly windows: Signal<readonly DesktopWindowInfo[]> = computed(() =>
@@ -190,6 +195,7 @@ export class DesktopComponent {
       snapPadding: this.snapPadding,
       allowOverlap: this.allowOverlap,
       snapLayouts: this.snapLayouts,
+      gridSize: this.gridSize,
     };
 
     // Windows re-fit when the desktop changes size (layout changes, not only viewport resizes).

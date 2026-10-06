@@ -25,6 +25,7 @@ export interface DesktopSettings {
   snapPadding: Signal<number>;
   allowOverlap: Signal<boolean>;
   snapLayouts: Signal<boolean>;
+  gridSize: Signal<number>;
 }
 
 /** @internal */
@@ -86,6 +87,7 @@ export class DesktopService {
     snapPadding: signal(0),
     allowOverlap: signal(true),
     snapLayouts: signal(true),
+    gridSize: signal(0),
   };
 
   readonly windows = this._windows.asReadonly();

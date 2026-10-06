@@ -36,6 +36,7 @@ import {
   WindowHeaderDirective,
 } from '../../directives/window-slots.directive';
 import { fitWithoutOverlap, limitMove, limitResize } from '../../geometry/fit';
+import { gridMove, gridResize } from '../../geometry/grid';
 import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
 import { placeRect } from '../../geometry/placement';
@@ -541,7 +542,7 @@ export class WindowComponent implements DesktopWindow {
     const arrow = ARROW_KEYS[event.key];
     if (!arrow) return;
     event.preventDefault();
-    const step = event.altKey ? KEYBOARD_FINE_STEP : KEYBOARD_STEP;
+    const step = event.altKey ? KEYBOARD_FINE_STEP : this.gridSize() || KEYBOARD_STEP;
     if (event.ctrlKey || event.metaKey) {
       this.keyboardSnap(event.key);
     } else if (event.shiftKey) {
@@ -645,7 +646,11 @@ export class WindowComponent implements DesktopWindow {
       const { snapToZones, snapToWindows, snapThreshold, snapPadding } = desktop.settings;
       const pointer = desktop.toLocal(event.clientX, event.clientY);
       this.dragZone = snapToZones() ? detectZone(pointer, bounds, snapThreshold()) : null;
-      if (!this.dragZone && snapToWindows()) {
+      const grid = this.gridSize();
+      if (!this.dragZone && grid) {
+        next = gridMove(next, grid, bounds);
+        if (this.keepInBounds()) next = clampRect(next, bounds);
+      } else if (!this.dragZone && snapToWindows()) {
         next = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold(), snapPadding());
         if (this.keepInBounds()) next = clampRect(next, bounds);
       }
@@ -717,7 +722,10 @@ export class WindowComponent implements DesktopWindow {
     );
 
     const desktop = this.snappingDesktop();
-    if (desktop?.settings.snapToWindows()) {
+    const grid = this.gridSize();
+    if (grid) {
+      next = gridResize(next, direction, grid, bounds, minSize, this.maxSize(bounds));
+    } else if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const max = this.maxSize(bounds);
@@ -754,7 +762,11 @@ export class WindowComponent implements DesktopWindow {
     let next = moveRect(start, dx, dy, this.keepInBounds() ? this.visibleBounds(start) : undefined);
 
     const desktop = this.snappingDesktop();
-    if (desktop?.settings.snapToWindows()) {
+    const grid = this.gridSize();
+    if (grid && Math.abs(dx + dy) >= grid) {
+      next = gridMove(next, grid, bounds);
+      if (this.keepInBounds()) next = clampRect(next, bounds);
+    } else if (!grid && desktop?.settings.snapToWindows()) {
       const { snapThreshold, snapPadding } = desktop.settings;
       const pulled = magneticMove(next, desktop.otherRects(this.id), bounds, snapThreshold(), snapPadding());
       next = { ...next, x: along(next.x, pulled.x, dx), y: along(next.y, pulled.y, dy) };
@@ -783,7 +795,10 @@ export class WindowComponent implements DesktopWindow {
     let next = resizeRect(start, direction, dx, dy, minSize, this.keepInBounds() ? bounds : undefined, maxSize);
 
     const desktop = this.snappingDesktop();
-    if (desktop?.settings.snapToWindows()) {
+    const grid = this.gridSize();
+    if (grid && Math.abs(dx + dy) >= grid) {
+      next = gridResize(next, direction, grid, bounds, minSize, maxSize);
+    } else if (!grid && desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const pulled = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding(), maxSize);
@@ -1080,6 +1095,12 @@ export class WindowComponent implements DesktopWindow {
     this.restoreSize.set(zone ? { width: start.width, height: start.height } : null);
     this.setRect(landing);
     if (zone) this.snapped.emit(snappedZone);
+  }
+
+  /** The desktop's grid in px for this window (0: none, also outside a desktop or when not `snappable`). */
+  private gridSize(): number {
+    const grid = this.snappingDesktop()?.settings.gridSize() ?? 0;
+    return Number.isFinite(grid) && grid > 1 ? grid : 0;
   }
 
   /** Gap kept around snapped windows (0 outside a desktop). */
