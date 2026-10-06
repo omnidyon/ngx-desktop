@@ -31,7 +31,7 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 
 ## E. Release
 
-- [ ] 15. Playwright end-to-end suite (`npm run e2e`, local)
+- [x] 15. Playwright end-to-end suite (`npm run e2e`, local Chrome, normal and reduced motion)
 - [ ] 16. Angular 22 compatibility check
 - [ ] 17. README API reference and CHANGELOG (0.1.0), in the same structure as ngx-snippets:
   - root `README.md` is a landing page: badges, logo and tagline, links (Contributing · Submit an Issue ·

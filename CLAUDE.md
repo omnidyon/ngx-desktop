@@ -10,7 +10,7 @@ It was extracted from the window module of the `sgm` project (`sgm/src/app/modul
 
 - **Framework**: Angular 21 (LTS), standalone components, signals
 - **Packaging**: ng-packagr → `dist/ngx-desktop`, published to npm as `@omnidyon/ngx-desktop` (npm only: an Angular component library needs the compiled ng-packagr output, which JSR does not take)
-- **Tests**: Angular unit-test builder (Vitest + jsdom)
+- **Tests**: Angular unit-test builder (Vitest + jsdom); end-to-end with Playwright (`e2e/`, local Chrome)
 - **Quality**: angular-eslint + typescript-eslint, Prettier
 - **Runtime dependencies**: `tslib` only. Peer deps: `@angular/core`, `@angular/common` (`>=21.0.0 <23.0.0`)
 
@@ -28,6 +28,7 @@ npm start              # serve the examples app
 npm run build          # build the library (ng-packagr)
 npm test               # library unit tests (single run)
 npm run test:examples  # examples app tests
+npm run e2e            # end-to-end tests of the examples app in Chrome (normal and reduced motion)
 npm run lint           # ESLint for both projects
 npm run format         # Prettier write
 npm run format:check   # Prettier check
@@ -41,9 +42,10 @@ These rules apply to every task. They are non-negotiable and must be followed wi
 1. **New feature → spec file required.** Every new feature (component, directive, service, geometry function) must ship with a `*.spec.ts` next to it covering the primary happy path and the key error/edge cases. No feature is complete without its tests.
 2. **Full test suite after every completed task.** Run `npm test` after every task. All tests must pass before moving on. If any test fails, fix it before considering the task done.
 3. **All code must pass lint.** Every file you write — source and spec — must conform to the ESLint and Prettier rules. Run `npm run lint` and `npm run format:check` after writing code. Zero errors, zero warnings. Write clean code from the start instead of fixing violations later.
-4. **Library must build.** Run `npm run build` after every task that touches `projects/ngx-desktop/`.
-5. **Manual testing after feature completion.** After each feature, give the user detailed manual-testing instructions for the examples app (`npm start`) covering all functionality, edge cases (mouse and touch, container edges, minimum sizes, overlapping windows) and styling/theming. Wait for explicit confirmation that manual testing passed before moving on to the next task.
-6. **Branch per feature/bug fix.** Create a new branch for every feature or bug fix before starting work. Only continue with the next task after the branch is merged.
+4. **End-to-end suite stays green.** Run `npm run e2e` before reporting a feature done: it is the regression check of everything that already works (real mouse and keyboard). A new feature adds its own e2e test and must not change existing behaviour unless asked.
+5. **Library must build.** Run `npm run build` after every task that touches `projects/ngx-desktop/`.
+6. **Manual testing after feature completion.** After each feature, give the user detailed manual-testing instructions for the examples app (`npm start`) covering all functionality, edge cases (mouse and touch, container edges, minimum sizes, overlapping windows) and styling/theming. Wait for explicit confirmation that manual testing passed before moving on to the next task.
+7. **Branch per feature/bug fix.** Create a new branch for every feature or bug fix before starting work. Only continue with the next task after the branch is merged.
 
 ## Angular Conventions
 

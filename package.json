@@ -9,10 +9,11 @@
     "test": "ng test ngx-desktop --watch=false",
     "test:examples": "ng test examples --watch=false",
     "lint": "ng lint",
-    "format": "prettier --write \"projects/**/*.{ts,html,scss,json}\"",
-    "format:check": "prettier --check \"projects/**/*.{ts,html,scss,json}\"",
+    "format": "prettier --write \"projects/**/*.{ts,html,scss,json}\" \"e2e/**/*.ts\" playwright.config.ts",
+    "format:check": "prettier --check \"projects/**/*.{ts,html,scss,json}\" \"e2e/**/*.ts\" playwright.config.ts",
     "publish:lib": "bash ./publish-lib.sh",
-    "publish:dry-run": "npm run lint && npm test && npm run build && npm publish ./dist/ngx-desktop --dry-run"
+    "publish:dry-run": "npm run lint && npm test && npm run build && npm publish ./dist/ngx-desktop --dry-run",
+    "e2e": "tsc -p e2e/tsconfig.json && playwright test"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
@@ -31,6 +32,7 @@
     "@angular/cli": "^21.2.25",
     "@angular/compiler-cli": "^21.2.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "angular-eslint": "21.4.0",
     "eslint": "^10.3.0",
     "jsdom": "^28.0.0",
