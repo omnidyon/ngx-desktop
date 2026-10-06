@@ -198,7 +198,6 @@
         [width]="window.data.widget ? 240 : 320"
         [height]="window.data.widget ? 140 : 220"
         [widget]="!!window.data.widget"
-        [aspectRatio]="window.data.widget ? 240 / 140 : null"
         [persistKey]="window.key"
         (closed)="removeWindow(window)"
         (snapped)="record($event ? window.data.title + ' snapped: ' + $event : window.data.title + ' unsnapped')"
