@@ -25,8 +25,8 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 - [x] 9. Desktop API from code (`#desk="omniDesktop"`, `injectDesktop()`: windows, focus, minimize / restore all, show desktop, close all, tile, cascade)
 - [x] 10. Snap layouts on the maximize button (hover, long press, Alt+Z; halves, thirds, quarters, 2/3 + 1/3, main + side stack)
 - [x] 11. Dock extras (left / right positions, badges, custom tab template, pinned windows)
-- [x] 12. Widget extras (`aspectRatio`, `<ng-template omniWindowContent>` rendered only while shown)
-- [ ] 13. Draggable dialogs
+- [x] 12. Widget extras: `<ng-template omniWindowContent>` rendered only while shown
+- [-] 13. ~~Draggable dialogs~~ (dropped)
 - [ ] 14. Grid snapping
 
 ## E. Release
@@ -42,4 +42,4 @@ Work goes one item at a time, each on its own branch, with tests, a real-browser
 ## F. Ecosystem
 
 - [ ] 18. Public demo on GitHub Pages (manual deploy)
-- [ ] 19. Move sgm onto the library
+- [-] 19. ~~Move sgm onto the library~~ (dropped)

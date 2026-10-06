@@ -35,7 +35,6 @@ import {
   WindowFooterDirective,
   WindowHeaderDirective,
 } from '../../directives/window-slots.directive';
-import { fitAspect, keepAspect } from '../../geometry/aspect-ratio';
 import { fitWithoutOverlap, limitMove, limitResize } from '../../geometry/fit';
 import { Length, resolveLength } from '../../geometry/length';
 import { magneticMove, magneticResize } from '../../geometry/magnetic-snap';
@@ -181,11 +180,6 @@ export class WindowComponent implements DesktopWindow {
   readonly maxWidth = input<Length>();
   /** Largest height: px or a percentage of the desktop/viewport height. No limit by default. */
   readonly maxHeight = input<Length>();
-  /**
-   * Keeps the window's shape: width ÷ height, e.g. `16 / 9` or `1`. Resizing, snapping into zones, tiling
-   * and restored layouts keep it; maximize and full screen still fill everything. Unset: any shape.
-   */
-  readonly aspectRatio = input<number | null>(null);
   readonly closable = input(true, { transform: booleanAttribute });
   readonly draggable = input(true, { transform: booleanAttribute });
   readonly resizable = input(true, { transform: booleanAttribute });
@@ -722,11 +716,8 @@ export class WindowComponent implements DesktopWindow {
       this.maxSize(bounds)
     );
 
-    const start = this.interactionStart;
     const desktop = this.snappingDesktop();
-    if (this.ratio()) {
-      next = this.keepRatio(next, start, direction, this.keepInBounds() ? bounds : undefined);
-    } else if (desktop?.settings.snapToWindows()) {
+    if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const max = this.maxSize(bounds);
@@ -734,8 +725,7 @@ export class WindowComponent implements DesktopWindow {
     }
     const blocking = this.overlapDesktop();
     if (blocking) {
-      const limited = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
-      next = this.keepRatio(limited, start, direction, undefined, { width: limited.width, height: limited.height });
+      next = limitResize(next, this.interactionStart, direction, blocking.otherRects(this.id), this.snapPadding());
     }
     this.setRect(next);
   }
@@ -793,9 +783,7 @@ export class WindowComponent implements DesktopWindow {
     let next = resizeRect(start, direction, dx, dy, minSize, this.keepInBounds() ? bounds : undefined, maxSize);
 
     const desktop = this.snappingDesktop();
-    if (this.ratio()) {
-      next = this.keepRatio(next, start, direction, this.keepInBounds() ? bounds : undefined, maxSize);
-    } else if (desktop?.settings.snapToWindows()) {
+    if (desktop?.settings.snapToWindows()) {
       const others = desktop.otherRects(this.id);
       const { snapThreshold, snapPadding } = desktop.settings;
       const pulled = magneticResize(next, direction, others, bounds, snapThreshold(), minSize, snapPadding(), maxSize);
@@ -804,10 +792,7 @@ export class WindowComponent implements DesktopWindow {
       next = { ...next, width: right - next.x, height: bottom - next.y };
     }
     const blocking = this.overlapDesktop();
-    if (blocking) {
-      const limited = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
-      next = this.keepRatio(limited, start, direction, undefined, { width: limited.width, height: limited.height });
-    }
+    if (blocking) next = limitResize(next, start, direction, blocking.otherRects(this.id), this.snapPadding());
 
     this.setRect(next);
     this.resizeEnd.emit(next);
@@ -1050,32 +1035,13 @@ export class WindowComponent implements DesktopWindow {
 
   /** Keeps a rect within the size limits. */
   private limit(rect: Rect, bounds: Rect): Rect {
-    const limited = limitSize(rect, this.minSize(), this.maxSize(bounds));
-    const ratio = this.ratio();
-    return ratio ? { ...limited, ...fitAspect(limited, ratio, this.minSize()) } : limited;
-  }
-
-  /** A usable `aspectRatio`, or `null`. */
-  private ratio(): number | null {
-    const ratio = this.aspectRatio();
-    return ratio && Number.isFinite(ratio) && ratio > 0 ? ratio : null;
-  }
-
-  /** Keeps a resized rect at the aspect ratio, when there is one. */
-  private keepRatio(next: Rect, start: Rect, direction: ResizeDirection, bounds?: Rect, max?: Size): Rect {
-    const ratio = this.ratio();
-    if (!ratio) return next;
-    return keepAspect(next, start, direction, ratio, this.minSize(), max ?? this.maxSize(this.bounds()), bounds);
+    return limitSize(rect, this.minSize(), this.maxSize(bounds));
   }
 
   /** The rect of a snap zone for this window: maximize fills the desktop, other zones respect the maximum size. */
   private zoneTarget(zone: SnapZone, bounds: Rect): Rect {
     const rect = zoneRect(zone, bounds, this.snapPadding());
-    if (zone === 'maximize') return rect;
-    const limited = limitZoneRect(zone, rect, this.maxSize(bounds));
-    const ratio = this.ratio();
-    // A fixed shape takes the largest box of that shape in the zone, against the zone's outer side.
-    return ratio ? limitZoneRect(zone, limited, fitAspect(limited, ratio)) : limited;
+    return zone === 'maximize' ? rect : limitZoneRect(zone, rect, this.maxSize(bounds));
   }
 
   /** The desktop, when it does not allow windows to overlap. */

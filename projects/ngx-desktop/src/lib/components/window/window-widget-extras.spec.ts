@@ -23,15 +23,7 @@ class LazyComponent {
   imports: [DesktopComponent, WindowComponent, WindowContentDirective, LazyComponent],
   template: `
     <omni-desktop dock="none">
-      <omni-window
-        header="R"
-        [x]="0"
-        [y]="0"
-        [width]="width()"
-        [height]="100"
-        [aspectRatio]="ratio()"
-        [(visible)]="visible"
-      >
+      <omni-window header="R" [x]="0" [y]="0" [width]="width()" [height]="100" [(visible)]="visible">
         <ng-template omniWindowContent><test-lazy /></ng-template>
       </omni-window>
       <omni-window header="Other" [x]="500" [y]="400" [width]="200" [height]="100" />
@@ -42,20 +34,13 @@ class LazyComponent {
 class HostComponent {
   readonly windows = viewChildren(WindowComponent);
   readonly width = signal(200);
-  readonly ratio = signal<number | null>(2);
   readonly visible = signal(true);
-}
-
-function pointer(target: EventTarget, type: string, x: number, y: number): void {
-  target.dispatchEvent(
-    new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1, button: 0 })
-  );
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Desktop is 800 × 600. R starts at (0, 0), 200 × 100, aspect ratio 2. */
-describe('Window aspect ratio and lazy content', () => {
+/** Desktop is 800 × 600. R starts at (0, 0), 200 × 100. */
+describe('Window content only while shown', () => {
   let fixture: ComponentFixture<HostComponent>;
   let host: HostComponent;
   let element: HTMLElement;
@@ -73,13 +58,6 @@ describe('Window aspect ratio and lazy content', () => {
     await stable();
   }
 
-  async function drag(selector: string, from: { x: number; y: number }, to: { x: number; y: number }): Promise<void> {
-    pointer(element.querySelector(`omni-window ${selector}`)!, 'pointerdown', from.x, from.y);
-    pointer(document, 'pointermove', to.x, to.y);
-    pointer(document, 'pointerup', to.x, to.y);
-    await stable();
-  }
-
   beforeEach(() => {
     LazyComponent.created = 0;
     LazyComponent.destroyed = 0;
@@ -88,57 +66,6 @@ describe('Window aspect ratio and lazy content', () => {
   });
 
   afterEach(() => vi.restoreAllMocks());
-
-  describe('aspectRatio', () => {
-    it('gives the window the shape from the start', async () => {
-      await create((h) => h.width.set(300));
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 200, height: 100 });
-    });
-
-    it('keeps the shape when an edge is dragged', async () => {
-      await create();
-      await drag('.omni-resize-e', { x: 200, y: 50 }, { x: 300, y: 50 });
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 300, height: 150 });
-    });
-
-    it('keeps the shape when a corner is dragged, following the bigger change', async () => {
-      await create();
-      await drag('.omni-resize-se', { x: 200, y: 100 }, { x: 220, y: 200 });
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 400, height: 200 });
-    });
-
-    it('takes the largest box of its shape in a zone, and still fills the desktop when maximized', async () => {
-      await create();
-      await drag('.omni-window-header', { x: 100, y: 10 }, { x: 3, y: 300 });
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 400, height: 200 });
-
-      win().toggleMaximize();
-      await stable();
-      expect(element.querySelector('omni-window')!.classList).toContain('omni-window-maximized');
-    });
-
-    it('keeps the shape on a keyboard resize', async () => {
-      await create();
-      const header = element.querySelector<HTMLElement>('omni-window .omni-window-header')!;
-      header.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true }));
-      await stable();
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 210, height: 105 });
-    });
-
-    it('keeps the shape when tiled', async () => {
-      await create();
-      (fixture.debugElement.children[0].componentInstance as DesktopComponent).tile('columns');
-      await stable();
-      // the cell is 400 × 600; the widest 2:1 box is 400 × 200
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 400, height: 200 });
-    });
-
-    it('allows any shape again when the ratio is removed', async () => {
-      await create((h) => h.ratio.set(null));
-      await drag('.omni-resize-e', { x: 200, y: 50 }, { x: 300, y: 50 });
-      expect(win().rect()).toEqual({ x: 0, y: 0, width: 300, height: 100 });
-    });
-  });
 
   describe('omniWindowContent', () => {
     it('is not created while the window is closed, and is created when it opens', async () => {
